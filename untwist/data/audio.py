@@ -11,6 +11,16 @@ from untwist.soundcard import audio_driver
 from untwist.base.exceptions import *
 
 
+""" utility functions"""
+
+def ensure2D(ndarray):    
+    if len(ndarray.shape)==1:
+        ndarray = ndarray.reshape((ndarray.shape[0],1))    
+    return ndarray
+
+
+
+
 """
 Time domain signal. Layout is one column per channel
 """
@@ -19,6 +29,7 @@ class Signal(np.ndarray):
     
     __array_priority__ = 10
     def __new__(cls, data, sample_rate= 44100):
+        data = ensure2D(data)
         instance = np.ndarray.__new__(cls, 
             data.shape, dtype = data.dtype, strides = data.strides, buffer = data)
         instance.sample_rate = sample_rate
@@ -51,6 +62,8 @@ class Wave(Signal):
     def __init__(self, samples, sample_rate):
         self.stream = None
         super(Wave, self).__init__(samples, sample_rate)
+
+        
     
     @classmethod
     def read(cls,filename):
