@@ -66,11 +66,12 @@ class Dataset(DatasetBase):
         self.Y = np.load(path + "/Y.npy")                        
     
     def normalize_points(self, x):
-        return (x - np.amin(self.X, 0)) \
-            / (np.amax(self.X, 0) - np.amin(self.X, 0))
+        return np.divide(x - np.amin(self.X, 0) ,
+            np.amax(self.X, 0) - np.amin(self.X, 0), np.empty_like(x))
 
     def standardize_points(self, x):
-        return (x - np.mean(self.X, 0)) / np.std(self.X, 0)
+        return np.divide(x - np.mean(self.X, 0) , 
+            np.std(self.X, 0),  np.empty_like(x))
         
 
 """Memory mapped version using numpy memmap"""
@@ -161,11 +162,15 @@ class MMDataset(DatasetBase):
         self.index = np.random.permutation(self.X.shape[0])        
 
     def normalize_points(self, x):
-        return (x - self.running_min) / (self.running_max - self.running_min)
+        return np.divide(x - self.running_min, (self.running_max - self.running_min), np.empty_like(x))
 
     def standardize_points(self, x):
-        std = np.sqrt(self.running_dev/(self.X.shape[0]-1))
-        return (x - self.running_mean) / std        
+        tmp = np.empty_like(self.running_dev)
+        tmp = np.divide(self.running_dev, (self.X.shape[0]-1), tmp)
+        std = np.sqrt(tmp)
+        result = np.empty_like(x)
+        result = np.divide(x - self.running_mean, std, result)
+        return result
         
     def get_batch(self, index, size, normalization = 2):              
         if self.index is None: self.index = np.arange(self.X.shape[0])
