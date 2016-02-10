@@ -10,12 +10,10 @@ from untwist.base.algorithms import Processor
 from untwist.data import audio
 
 
-
-
 class NMF(Processor):
     
     def __init__(self, rank, update_func = "kl", iterations = 100, 
-        threshold = None, norm_W = 2, nomr_H = 0, 
+        threshold = None, norm_W = 2, norm_H = 0, 
         update_W = True, update_H = True):
 
         self.rank = rank
@@ -23,17 +21,17 @@ class NMF(Processor):
         self.iterations = iterations
         self.threshold = threshold
         self.norm_W = norm_W
-        self.norm_H = nomr_H
+        self.norm_H = norm_H
         self.update_W = update_W
         self.update_H = update_H
 
     """
     Compute divergence between reconstruction and original
     """    
-    def compute_error(V, W, H):
+    def compute_error(self, V, W, H):
         Vf = V.flatten()
-        Rf = (W * H).flatten()
-        err = np.sum(  np.multiply(Vf, np.log(Vf/Rf)) - Vf + Rf)
+        Rf = np.dot(W, H).flatten()
+        err = np.sum(np.multiply(Vf, np.log(Vf/Rf)) - Vf + Rf)
         return err        
 
     """
@@ -80,13 +78,11 @@ class NMF(Processor):
     """    
     def kl_updates(self, V, W, H):
         eps = np.spacing(1)
-        if self.update_W:
-            #W = np.multiply( W, ( ( (V/R) * H.T) / np.max(self.ones * H.T, np.spacing(1)) ))            
+        if self.update_W:            
             W  = W * np.dot(V / (np.dot(W, H) + eps) , H.T) / np.max(np.dot(self.ones, H.T), eps)
             np.nan_to_num(W)
         self.normalize_W(W)        
-        if self.update_H: 
-            #H = np.multiply( H, ( ( W.T * (V/R)) / np.max(W.T * self.ones, np.spacing(1)) ))
+        if self.update_H:             
             H  = H * np.dot(W.T, V / (np.dot(W, H )+ eps)) / np.max(np.dot(W.T, self.ones), eps)
             np.nan_to_num(H)
         self.normalize_H(H)
