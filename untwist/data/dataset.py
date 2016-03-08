@@ -31,6 +31,29 @@ class DatasetBase:
     def load(self, basename):
         return NotImplemented
 
+    # inspired by librosa, but here data points are rows
+    def shingle(self, X, steps, delay = 1):        
+        n_points = X.shape[0]
+        X = np.pad(X, [(int(steps - 1) * delay, 0), (0, 0)], 
+            mode="constant", constant_values = [0])
+        Xs = X
+        for i in range(1, steps):
+            Xs = np.hstack([Xs, np.roll(X, -i * delay, axis = 0)])
+        return Xs
+
+    # average repeated positions, ignore absolute 0
+    def unshingle(self, X, steps, delay = 1):
+        n_features = X.shape[1] / steps
+        Xu = X[:,:n_features]        
+        for i in range(1, steps):
+            Xtmp = X[:,i*n_features:(i+1)*n_features]
+            Xu = np.dstack([Xu, np.roll(Xtmp, i * delay, axis = 0)])
+        if steps > 1:
+            #Xu[Xu==0]=np.nan
+            return np.mean(Xu,2)[steps-1:,:]
+        else:
+            return Xu        
+
 class Dataset(DatasetBase):
     def __init__(self, x_width, x_type, y_width = 0, y_type = types.int_):
         self.X = np.empty((0, x_width), x_type)
@@ -102,7 +125,7 @@ class MMDataset(DatasetBase):
 
     def load(self, path):
             metadata = json.loads(open(path + "/dataset.json").read())
-            self.index = metadata["index"]
+            self.index = np.array(metadata["index"])
             x_shape = tuple(metadata["x_shape"])
             x_type = metadata["x_type"]
             y_shape = tuple(metadata["y_shape"])
@@ -111,8 +134,7 @@ class MMDataset(DatasetBase):
             self.running_mean = np.asarray(metadata["running_mean"])
             self.running_dev = np.asarray(metadata["running_dev"])
             self.running_max = np.asarray(metadata["running_min"])
-            self.running_min = np.asarray(metadata["running_max"])
-            print path+"/X.npy", x_type
+            self.running_min = np.asarray(metadata["running_max"])            
             self.X =  np.memmap(path+"/X.npy", x_type, shape = x_shape)
             if y_shape[0] > 0:
                 self.Y = np.memmap(path+"/Y.npy", y_type, shape = y_shape)                
@@ -120,9 +142,9 @@ class MMDataset(DatasetBase):
             self.path = path
                     
     def save(self):
-        if not self.index: self.index = range(self.X.shape[0])
+        if self.index is None: self.index = np.array(range(self.X.shape[0]))
         metadata = {
-            "index":self.index,            
+            "index":self.index.tolist(),            
             "x_shape": self.X.shape,
             "x_type": str(self.X.dtype),
             "y_shape": self.Y.shape,
@@ -136,6 +158,7 @@ class MMDataset(DatasetBase):
             f.write(json.dumps(metadata))
         self.X.flush()
         if self.Y is not None: self.Y.flush()
+    
     
     def add(self, x, y = None):
         self.X =  np.memmap(
