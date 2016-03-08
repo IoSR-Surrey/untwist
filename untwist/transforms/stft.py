@@ -35,7 +35,7 @@ class STFT(Processor):
             strides=(col_size*self.hop_size, col_size)).copy()
         frames *= self.window
         transform = np.fft.rfft(frames, self.fft_size)        
-        return audio.Spectrogram(transform.T, 
+        return audio.Spectrogram(transform.T[:,1:-1], # undo padding
             wave.sample_rate, len(self.window), self.hop_size)
             
             
