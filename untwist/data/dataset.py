@@ -8,8 +8,8 @@ import os.path
 import json
 import numpy as np
 import matplotlib.pyplot as plt
-from untwist.base import types
-from untwist.base.exceptions import *
+from ..base import types
+from ..base.exceptions import *
 
 
 class DatasetBase:

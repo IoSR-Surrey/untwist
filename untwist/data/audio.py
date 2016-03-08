@@ -6,9 +6,10 @@ Should always inherit from ndarray, but utility functions may be added, e.g. loa
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import wavfile
-from untwist.base import types
-from untwist.soundcard import audio_driver
-from untwist.base.exceptions import *
+from ..base import types
+from ..base.exceptions import *
+from ..soundcard import audio_driver
+
 
 
 """ utility functions"""

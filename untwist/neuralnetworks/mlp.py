@@ -6,9 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import theano
 import theano.tensor as T
-#from theano.misc.pkl_utils import dump, load
 import cPickle
-from untwist.base import Model, ArgumentException
+from ..base import Model, ArgumentException
         
 
 class Layer(object):

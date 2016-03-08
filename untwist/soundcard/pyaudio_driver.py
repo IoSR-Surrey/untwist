@@ -4,9 +4,10 @@ Only tested with 0.28
 """
 
 import pyaudio as pa
-from untwist.soundcard import driver
-from untwist.base import types
 import numpy as np
+from ..soundcard import driver
+from ..base import types
+
 
 class PyAudioDriver(driver.AudioDriver):
     

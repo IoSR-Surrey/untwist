@@ -5,12 +5,12 @@ Based on:
 Emmanuel Vincent, "Musical source separation using time-frequency source priors," 
 IEEE Trans. on Audio, Speech and Language Processing, 14(1):91-98, 2006
 """
-
-from untwist.base import Processor
-from untwist.data import audio
 import numpy as np
 from numpy.lib import stride_tricks
 from scipy import signal
+
+from ..base import Processor
+from ..data import audio
 
 def fftfilt(b, x, *n):
     N_x = len(x)

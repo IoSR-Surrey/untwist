@@ -3,10 +3,11 @@ Forward and inverse STFT
 
 """
 
-from untwist.base import Processor
-from untwist.data import audio
 import numpy as np
 from numpy.lib import stride_tricks
+from ..base import Processor
+from ..data import audio
+
 
 """
 Short-time Fourier Transform

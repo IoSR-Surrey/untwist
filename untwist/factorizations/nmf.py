@@ -5,8 +5,8 @@ Implementation is inspired by NMFlib by Graham Grindlay
 Currently implemented as processor for flexibility, so W and H are not kept in the object, the user is supposed to manage them.
 """
 import numpy as np
-from untwist.base.algorithms import Processor
-from untwist.data import audio
+from ..base.algorithms import Processor
+from ..data import audio
 
 eps = np.spacing(1)
 
