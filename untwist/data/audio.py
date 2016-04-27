@@ -64,8 +64,11 @@ class Wave(Signal):
         self.stream = None
         super(Wave, self).__init__(samples, sample_rate)
 
-        
-    
+    def __array_finalize__(self, obj):
+        if obj is None: return
+        self.stream = getattr(obj, 'stream', None)
+        self.sample_rate = getattr(obj, 'sample_rate', None)
+            
     @classmethod
     def read(cls,filename):
         sample_rate, samples = wavfile.read(filename)
