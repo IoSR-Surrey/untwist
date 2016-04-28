@@ -177,17 +177,29 @@ class Spectrogram(Spectrum):
     def plot(self,**kwargs):
         self.maginutude_plot(**kwargs )
         
-    def maginutude_plot(self, colormap="CMRmap", log_frequency = False, 
-        min_freq=20, max_freq=20000):
-        log_mag = 20.*np.log10(self.magnitude()+np.spacing(1))
-        time_values = np.arange(self.num_frames) * float(self.hop_size)/self.sample_rate
-        bin_width = self.sample_rate / (self.shape[0] *2)
-        freq_values = np.arange(self.shape[0]) * bin_width        
-        f = plt.figure()        
-        plt.pcolormesh(time_values, freq_values, log_mag, cmap = colormap)
-        plt.axis([0, time_values[-1], min_freq, max_freq])        
-        if log_frequency: plt.yscale('symlog',base=2)
-        plt.colorbar()        
-        plt.xlabel("time (s)")
-        plt.ylabel("frequency (hz)")    
-        return f
+    def maginutude_plot(self, colormap="CMRmap", min_freq = 0, max_freq = None, 
+        axes = None, label_x = True, label_y = True, title = None):            
+        mag = self.magnitude()
+        log_mag = 20. * np.log10((mag / np.max(mag)) + np.spacing(1))
+        if max_freq is None: max_freq = self.sample_rate / 2.0
+        hop_secs = float(self.hop_size) / self.sample_rate
+        time_values = np.arange(self.num_frames) * hop_secs
+        bin_hz = self.sample_rate / (self.shape[0] * 2)
+        freq_values = np.arange(self.shape[0]) * bin_hz
+        if axes == None: axes = plt.gca()
+        img = axes.imshow(log_mag, 
+            cmap = colormap,  
+            aspect="auto", 
+            vmin = -60,
+            origin ="low",
+            extent = [0, time_values[-1], min_freq, max_freq]
+        )
+        plt.colorbar(img, ax = axes)
+        if label_x: axes.set_xlabel("time (s)")
+        if label_y: axes.set_ylabel("freq (hz)")        
+        plt.setp(axes.get_xticklabels(), visible = label_x)
+        plt.setp(axes.get_yticklabels(), visible = label_y)
+        if title is not None:
+            axes.text(0.9, 0.9, title, horizontalalignment = 'right',
+                bbox={'facecolor':'white', 'alpha':0.7, 'pad':5}, 
+                transform=axes.transAxes)
