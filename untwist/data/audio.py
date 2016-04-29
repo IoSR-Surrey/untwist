@@ -9,6 +9,7 @@ from scipy.io import wavfile
 from ..base import types
 from ..base.exceptions import *
 from ..soundcard import audio_driver
+from matplotlib.colors import LinearSegmentedColormap
 
 
 
@@ -19,7 +20,7 @@ def ensure2D(ndarray):
         ndarray = ndarray.reshape((ndarray.shape[0],1))    
     return ndarray
 
-
+eps = np.spacing(1)
 
 
 """
@@ -175,26 +176,31 @@ class Spectrogram(Spectrum):
         return self.shape[1]   
             
     def plot(self,**kwargs):
-        self.maginutude_plot(**kwargs )
+        return self.magnitude_plot(**kwargs )
         
-    def maginutude_plot(self, colormap="CMRmap", min_freq = 0, max_freq = None, 
-        axes = None, label_x = True, label_y = True, title = None):            
+    def magnitude_plot(self, colormap = "CMRmap", min_freq = 0, max_freq = None, 
+        axes = None, label_x = True, label_y = True, title = None, 
+        colorbar = True, log_mag = True):            
         mag = self.magnitude()
-        log_mag = 20. * np.log10((mag / np.max(mag)) + np.spacing(1))
+        if log_mag: 
+            mag = 20. * np.log10((mag / np.max(mag)) + np.spacing(1))
+            min_val = -60
+        else:
+            min_val = 0
         if max_freq is None: max_freq = self.sample_rate / 2.0
         hop_secs = float(self.hop_size) / self.sample_rate
         time_values = np.arange(self.num_frames) * hop_secs
         bin_hz = self.sample_rate / (self.shape[0] * 2)
         freq_values = np.arange(self.shape[0]) * bin_hz
         if axes == None: axes = plt.gca()
-        img = axes.imshow(log_mag, 
+        img = axes.imshow(mag, 
             cmap = colormap,  
             aspect="auto", 
-            vmin = -60,
+            vmin = min_val,
             origin ="low",
             extent = [0, time_values[-1], min_freq, max_freq]
         )
-        plt.colorbar(img, ax = axes)
+        if colorbar:plt.colorbar(img, ax = axes)
         if label_x: axes.set_xlabel("time (s)")
         if label_y: axes.set_ylabel("freq (hz)")        
         plt.setp(axes.get_xticklabels(), visible = label_x)
@@ -203,3 +209,40 @@ class Spectrogram(Spectrum):
             axes.text(0.9, 0.9, title, horizontalalignment = 'right',
                 bbox={'facecolor':'white', 'alpha':0.7, 'pad':5}, 
                 transform=axes.transAxes)
+        return axes
+
+class TFMask(Spectrogram):
+    
+    def plot(self, mask_color = (1, 0, 0, 0.5), min_freq = 0, max_freq = None, 
+        axes = None, label_x = True, label_y = True, title = None):
+        if axes == None: 
+            colormap =  LinearSegmentedColormap.from_list("map",["white","black"])
+        else:
+            alpha_color = [mask_color[0], mask_color[1], mask_color[2], 0]
+            colormap = LinearSegmentedColormap.from_list("map", [alpha_color, mask_color])
+        Spectrogram.magnitude_plot(
+            self, colormap, min_freq, max_freq, axes, label_x, label_y, title, 
+            False, False
+            )
+        
+class BinaryMask(TFMask):
+    def __new__(cls, target, background, threshold = 0):
+        tm = target.magnitude() + eps
+        bm = background.magnitude() + eps
+        mask = (20 * np.log10(tm / bm) > threshold).astype(types.float_)
+        instance = TFMask.__new__(cls, mask)
+        instance.sample_rate = target.sample_rate
+        instance.window_size = target.window_size
+        instance.hop_size = target.hop_size
+        return instance
+    
+class RatioMask(TFMask):
+    def __new__(cls, target, background, p = 1):
+        tm = target.magnitude() + eps
+        bm = background.magnitude() + eps
+        mask = (tm**p / (tm + bm)**p).astype(types.float_)
+        instance = TFMask.__new__(cls, mask)
+        instance.sample_rate = target.sample_rate
+        instance.window_size = target.window_size
+        instance.hop_size = target.hop_size
+        return instance        
