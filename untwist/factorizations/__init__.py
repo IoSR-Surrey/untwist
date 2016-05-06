@@ -1,2 +1,4 @@
 from .nmf import NMF
-__all__ = ['NMF']
+from .rpca import RPCA
+
+__all__ = ['NMF', 'RPCA']
