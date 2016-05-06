@@ -140,6 +140,12 @@ Audio Spectrum. Initialize with a complex spectral frame and sample rate.
 """
 
 class Spectrum(Signal):
+        
+    def __array_finalize__(self, obj):
+        if obj is None: return        
+        self.sample_rate = getattr(obj, 'sample_rate', None)
+        self.sample_rate = getattr(obj, 'window_size', None)
+        self.sample_rate = getattr(obj, 'hop_size', None)
     
     def magnitude(self):
        return np.abs(self) 
@@ -162,18 +168,24 @@ Rows are frequency bins (0th is the lowest frequency), columns are time bins.
 class Spectrogram(Spectrum):
     
     def __new__(cls, data, sample_rate = 44100, window_size = 1024, hop_size = 512):
-        instance = Signal.__new__(cls, data,sample_rate)             
+        instance = Signal.__new__(cls, data, sample_rate)             
         instance.window_size = window_size
         instance.hop_size = hop_size
         return instance
-
+    
+    def __array_finalize__(self, obj):
+        if obj is None: return        
+        self.sample_rate = getattr(obj, 'sample_rate', None)
+        self.window_size = getattr(obj, 'window_size', None)
+        self.hop_size = getattr(obj, 'hop_size', None)
+   
     @property  
     def num_channels(self):
         return 1
 
     @property
     def num_frames(self):
-        return self.shape[1]   
+        return self.shape[1]
             
     def plot(self,**kwargs):
         return self.magnitude_plot(**kwargs )
