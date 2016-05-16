@@ -111,7 +111,7 @@ class MMDataset(DatasetBase):
             if x_width == 0 : raise "X width must be specified for new dataset"
             self.X = np.memmap(path + "/X.npy", x_type, "w+", 0, (1, x_width))
             self.X.flush()
-            if y_width > 0: 
+            if y_width > 0:
                 self.Y = np.memmap(path + "/Y.npy", y_type, "w+", 0, (1, y_width))        
                 self.Y.flush()
             else: self.Y = None
@@ -128,32 +128,36 @@ class MMDataset(DatasetBase):
             self.index = np.array(metadata["index"])
             x_shape = tuple(metadata["x_shape"])
             x_type = metadata["x_type"]
-            y_shape = tuple(metadata["y_shape"])
-            y_type = metadata["y_type"]
+            if "y_shape" in metadata: 
+                y_shape = tuple(metadata["y_shape"])            
+                y_type = metadata["y_type"]
+                self.Y = np.memmap(path+"/Y.npy", y_type, shape = y_shape)                
+            else:
+                self.Y = None
             self.nrows = x_shape[0]
             self.running_mean = np.asarray(metadata["running_mean"])
             self.running_dev = np.asarray(metadata["running_dev"])
             self.running_max = np.asarray(metadata["running_min"])
             self.running_min = np.asarray(metadata["running_max"])            
             self.X =  np.memmap(path+"/X.npy", x_type, shape = x_shape)
-            if y_shape[0] > 0:
-                self.Y = np.memmap(path+"/Y.npy", y_type, shape = y_shape)                
-            else: self.Y = None
             self.path = path
                     
     def save(self):
-        if self.index is None: self.index = np.array(range(self.X.shape[0]))
+        if self.index is None: 
+            self.index = np.array(range(self.X.shape[0]))
         metadata = {
-            "index":self.index.tolist(),            
+            "index": self.index.tolist(),            
             "x_shape": self.X.shape,
             "x_type": str(self.X.dtype),
-            "y_shape": self.Y.shape,
-            "y_type": str(self.Y.dtype),
-            "running_mean":self.running_mean.tolist(),
-            "running_dev":self.running_dev.tolist(), 
+            "running_mean": self.running_mean.tolist(),
+            "running_dev": self.running_dev.tolist(), 
             "running_min": self.running_min.tolist(), 
             "running_max": self.running_max.tolist(),
-        }        
+        }
+        if self.Y is not None:
+            metadata["y_shape"] = self.Y.shape
+            metadata["y_type"] = str(self.Y.dtype)
+            
         with open(self.path+"/dataset.json", "wt") as f: 
             f.write(json.dumps(metadata))
         self.X.flush()
