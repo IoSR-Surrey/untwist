@@ -53,11 +53,14 @@ class Signal(np.ndarray):
 
     @property
     def num_frames(self):
-        return self.shape[0]        
+        return self.shape[0]
 
     def check_mono(self):
         if self.num_channels > 1:
             raise ChannelLayoutException()
+            
+    def as_ndarray(self):
+        return np.array(self)
 
 class Wave(Signal):
     
