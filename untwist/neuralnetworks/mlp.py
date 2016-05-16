@@ -1,7 +1,3 @@
-"""
-Multilayer Perceptron theano-based implementation derived from 
-http://nbviewer.ipython.org/github/craffel/theano-tutorial/blob/master/Theano%20Tutorial.ipynb
-"""
 import numpy as np
 import matplotlib.pyplot as plt
 import theano
@@ -48,11 +44,12 @@ class Layer(object):
 
 class MLP(object):
 
-    def __init__(self, input, input_size, output, output_size, hidden_sizes, activation = T.nnet.sigmoid):
+    def __init__(self, input_size, output_size, hidden_sizes, activation = T.nnet.sigmoid):
         
         self.hidden_layers = []
         self.params = []
-        self.input = input        
+        self.input = T.matrix('x')   
+        self.target = T.matrix('y')           
 
         for i, layer_size in enumerate(hidden_sizes):
             if i == 0:
@@ -67,7 +64,8 @@ class MLP(object):
         
         self.output_layer = Layer(self.hidden_layers[-1].output, hidden_sizes[-1], output_size)
         self.params.extend(self.output_layer.params)
-        self.output = self.output_layer.output        
+        self.output = self.output_layer.output 
+        self.cost = T.sum((self.output - self.target)**2)       
         
 
     def save(self, fname):        
