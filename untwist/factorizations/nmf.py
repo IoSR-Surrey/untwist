@@ -73,20 +73,20 @@ class NMF(Processor):
         Initialize and compute multiplicative updates iterations
         """                
 
-         W = W0 if W0 is not None else np.random.rand(V.shape[0], self.rank) + eps
-         H = H0 if H0 is not None else np.random.rand(self.rank, V.shape[1]) + eps
-         err = []
-         self.ones = np.ones(V.shape)
-         W = self.normalize(W, self.W_norm, 0)
-         H = self.normalize(H, self.H_norm, 1)
+        W = W0 if W0 is not None else np.random.rand(V.shape[0], self.rank) + eps
+        H = H0 if H0 is not None else np.random.rand(self.rank, V.shape[1]) + eps
+        err = []
+        self.ones = np.ones(V.shape)
+        W = self.normalize(W, self.W_norm, 0)
+        H = self.normalize(H, self.H_norm, 1)
          
-         for i in range(self.iterations):
-             [V, W, H] = self.update(V, W, H)
-             if self.compute_divergence:
-                 err.append(self.divergence(V, W, H))
-                 if self.threshold is not None and err[-1] <= self.threshold:
-                     return [W, H, err]
-         return [W, H, err]
+        for i in range(self.iterations):
+            [V, W, H] = self.update(V, W, H)
+            if self.compute_divergence:
+                err.append(self.divergence(V, W, H))
+                if self.threshold is not None and err[-1] <= self.threshold:
+                    return [W, H, err]
+        return [W, H, err]
 
 
 
