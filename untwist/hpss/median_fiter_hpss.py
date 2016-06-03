@@ -9,8 +9,6 @@ from scipy import signal
 from ..base.algorithms import Processor
 from ..data import BinaryMask, RatioMask
 
-eps = np.spacing(1)
-
 class MedianFilterHPSS(Processor):
     
     def __init__(self, harmonic_length, percussive_length, 
