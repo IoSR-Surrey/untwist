@@ -55,6 +55,10 @@ class DatasetBase:
             return Xu        
 
 class Dataset(DatasetBase):
+    """
+    In-memory Dataset
+    """
+    
     def __init__(self, x_width, x_type, y_width = 0, y_type = types.int_):
         self.X = np.empty((0, x_width), x_type)
         self.Y = np.empty((0, y_width), y_type)
@@ -97,8 +101,11 @@ class Dataset(DatasetBase):
             np.std(self.X, 0),  np.empty_like(x))
         
 
-"""Memory mapped version using numpy memmap"""
+
 class MMDataset(DatasetBase):
+    """
+    Disk-based version using numpy memmap
+    """
     
     def __init__(self, path, 
         x_width = 0, x_type = np.float, 

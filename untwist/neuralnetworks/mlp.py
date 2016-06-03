@@ -1,3 +1,8 @@
+"""
+Multi-Layer Perceptron implementation, using Theano
+"""
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import theano
@@ -7,7 +12,9 @@ from ..base import Model, ArgumentException
         
 
 class Layer(object):
-    
+    """
+    Generic feed-forward layer (can be hidden or output)
+    """
     def __init__(self, input, n_in, n_out, 
         W = None, b = None, activation = T.nnet.sigmoid):
         self.input = input
@@ -43,6 +50,10 @@ class Layer(object):
         
 
 class MLP(object):
+    """
+    Multi-Layer Perceptron network, specified by the size of the input, 
+    the output and an arbitrary number of hidden layers.
+    """
 
     def __init__(self, input_size, output_size, hidden_sizes, activation = T.nnet.sigmoid):
         
@@ -86,6 +97,10 @@ class MLP(object):
 
 
 class Activations:
+    """
+    Some activation functions not available in theano.
+    """
+    
     @classmethod
     def ReLU(cls):        
         return lambda x: T.switch(x < 0, 0, x)        

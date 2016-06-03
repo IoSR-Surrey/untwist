@@ -1,6 +1,5 @@
 """
 Harmonic-Percussive separation using median filters, from 
-ls 
 D. FitzGerald, 'Harmonic/percussive separation using median filtering', 
 Proceedings of the 13th International Conference on Digital Audio Effects (DAFx-10), 2010.
 """
@@ -10,7 +9,10 @@ from ..base.algorithms import Processor
 from ..data import BinaryMask, RatioMask
 
 class MedianFilterHPSS(Processor):
-    
+    """
+    Harmonic-Percussive separation, using a horizontal median filter of size 
+    harmonic_length and a vertical median filter of size percussive_length.    
+    """
     def __init__(self, harmonic_length, percussive_length, 
         mask_class = RatioMask, mask_exp = 2):
         self.h_kernel = (1, harmonic_length)

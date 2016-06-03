@@ -40,6 +40,10 @@ def erb2hz(f):
     return (np.exp(f / 9.26) - 1) / 0.00437
     
 class QERBT(Processor):
+    """
+    Quadratic ERB transform processor, with independent window length 
+    and number of bins. Returns a Spectrogram.
+    """
     
     def __init__(self, n_bins = 350, w_len = 2048, sr = 44100):
         self.n_bins = n_bins

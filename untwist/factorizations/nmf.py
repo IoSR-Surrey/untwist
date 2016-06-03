@@ -11,7 +11,12 @@ from ..data import audio
 eps = np.spacing(1)
 
 class NMF(Processor):
-    
+    """
+    General NMF class, including euclidean, kl and beta-divergence 
+    implementations. For supervised NMF, typically set update_W 
+    to false in the constructor and provide a W0 to the process method
+    """
+      
     def __init__(self, rank, update_func = "kl", iterations = 100, 
         threshold = None, W_norm = 2, H_norm = 0, 
         update_W = True, update_H = True, return_divergence = False, beta = 0):
@@ -27,11 +32,12 @@ class NMF(Processor):
         self.compute_divergence = threshold != None or return_divergence 
         self.beta = beta
 
-    """
-    Compute divergence between reconstruction and original
-    """    
         
     def divergence(self, V, W, H):
+        """
+        Compute divergence between reconstruction and original
+        """    
+
         R = np.maximum(np.dot(W,H), eps)
         V = np.maximum(V, eps)
         err = 0
@@ -48,11 +54,12 @@ class NMF(Processor):
         return err
 
 
-    """
-    Normalize marix (W or H)
-    """    
         
-    def normalize(self, X, p, axis):        
+    def normalize(self, X, p, axis):
+        """
+        Normalize marix (W or H)
+        """    
+        
         if p == 1:
             norm = np.sum(X, axis)
         elif p == 2:
@@ -61,10 +68,11 @@ class NMF(Processor):
         norm[norm == 0] = 1.0
         return X / norm
 
-    """
-    Initialize and compute multiplicative updates iterations
-    """                
     def process(self, V, W0 = None, H0 = None):
+        """
+        Initialize and compute multiplicative updates iterations
+        """                
+
          W = W0 if W0 is not None else np.random.rand(V.shape[0], self.rank) + eps
          H = H0 if H0 is not None else np.random.rand(self.rank, V.shape[1]) + eps
          err = []
@@ -80,15 +88,16 @@ class NMF(Processor):
                      return [W, H, err]
          return [W, H, err]
 
+
+
     """
     Multiplicative updates functions
     """    
-
-
-    """
-    Optimize Euclidean distance
-    """    
     def euc_updates(self, V, W, H):        
+        """
+        Optimize Euclidean distance
+        """    
+        
         if self.update_W:            
             W  *= np.dot(V, H.T) / (np.dot(W, np.dot(H, H.T)) + eps)
             W = self.normalize(W, self.W_norm, 0)
@@ -99,12 +108,11 @@ class NMF(Processor):
             
         return [V, W, H]
 
-
          
-    """
-    Optimize Kullback-Leibler divergence
-    """    
     def kl_updates(self, V, W, H):
+        """
+        Optimize Kullback-Leibler divergence
+        """    
         
         if self.update_W:
             W  *= np.dot(V / (np.dot(W, H) + eps) , H.T) / np.maximum(np.dot(self.ones, H.T), eps)            
@@ -116,10 +124,11 @@ class NMF(Processor):
 
         return [V, W, H]
 
-    """
-    Optimize B-divergence
-    """
     def beta_updates(self, V, W, H):        
+        """
+        Optimize B-divergence
+        """
+
         if self.update_W:
             R = np.maximum(np.dot(W,H), eps)            
             W *= (np.dot(R ** (self.beta - 2) * V, H.T)  / 
@@ -134,9 +143,10 @@ class NMF(Processor):
 
         return [V, W, H]
         
-    """
-    Optimize Itakura-Saito divergence
-    """    
     def is_updates(self, V, W, H):
+        """
+        Optimize Itakura-Saito divergence (using B-divergence)
+        """
+        
         self.beta = 0
         return self.beta_updates(V, W, H)

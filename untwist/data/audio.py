@@ -23,11 +23,11 @@ def ensure2D(ndarray):
 eps = np.spacing(1)
 
 
-"""
-Time domain signal. Layout is one column per channel
-"""
 
 class Signal(np.ndarray):
+    """
+    Time domain signal. Layout is one column per channel
+    """
     
     __array_priority__ = 10
     def __new__(cls, data, sample_rate= 44100):
@@ -63,7 +63,10 @@ class Signal(np.ndarray):
         return np.array(self)
 
 class Wave(Signal):
-    
+    """
+    Audio waveform
+    """
+
     def __init__(self, samples, sample_rate):
         self.stream = None
         super(Wave, self).__init__(samples, sample_rate)
@@ -138,11 +141,11 @@ class Wave(Signal):
         return audio_driver.record(max_seconds, num_channels, sr, stop_func)
 
 
-"""
-Audio Spectrum. Initialize with a complex spectral frame and sample rate. 
-"""
 
 class Spectrum(Signal):
+    """
+    Audio Spectrum.
+    """
         
     def __array_finalize__(self, obj):
         if obj is None: return        
@@ -163,12 +166,12 @@ class Spectrum(Signal):
         return f
        
         
-"""
-Audio Spectrogram (complex). 
-Rows are frequency bins (0th is the lowest frequency), columns are time bins.
-"""
         
 class Spectrogram(Spectrum):
+    """
+    Audio Spectrogram (complex). 
+    Rows are frequency bins (0th is the lowest frequency), columns are time bins.
+    """
     
     def __new__(cls, data, sample_rate = 44100, window_size = 1024, hop_size = 512):
         instance = Signal.__new__(cls, data, sample_rate)             
@@ -227,7 +230,10 @@ class Spectrogram(Spectrum):
         return axes
 
 class TFMask(Spectrogram):
-    
+    """
+    Base time-frequency mask for multiplying with spectrograms.
+    """
+
     def plot(self, mask_color = (1, 0, 0, 0.5), min_freq = 0, max_freq = None, 
         axes = None, label_x = True, label_y = True, title = None):
         if axes == None: 
@@ -241,6 +247,12 @@ class TFMask(Spectrogram):
             )
         
 class BinaryMask(TFMask):
+    """
+    Binary Mask based on a comparison between target and background.
+    If the threshold is 0, the mask is 1 when the target magnitude is larger 
+    than the background, and 0 otherwise.
+    """
+
     def __new__(cls, target, background, threshold = 0):
         tm = target.magnitude() + eps
         bm = background.magnitude() + eps
@@ -252,6 +264,11 @@ class BinaryMask(TFMask):
         return instance
     
 class RatioMask(TFMask):
+    """
+    Ratio Mask: soft mask based on ratio of target to background magnitude, 
+    with optional exponent p.
+    """
+    
     def __new__(cls, target, background, p = 1):
         tm = target.magnitude() + eps
         bm = background.magnitude() + eps

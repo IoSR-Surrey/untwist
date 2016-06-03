@@ -1,6 +1,5 @@
 """
 Common exceptions
-
 """
 
 class ChannelLayoutException(Exception):    

@@ -1,6 +1,5 @@
 """
-Forward and inverse STFT
-
+Forward and inverse Short-Time Fourier Transform
 """
 
 import numpy as np
@@ -9,12 +8,12 @@ from ..base import Processor
 from ..data import audio
 
 
-"""
-Short-time Fourier Transform
-Input should be a mono Wave, output is a complex spectrogram
-"""
 
 class STFT(Processor):
+    """
+    Short-Time Fourier Transform
+    Input should be a mono Wave, output is a complex spectrogram
+    """
 
     def __init__(self, window=None, fft_size=1024, hop_size=512):
         if window is None:
@@ -40,11 +39,11 @@ class STFT(Processor):
             wave.sample_rate, len(self.window), self.hop_size)
             
             
-"""
-Inverse Short-time Fourier Transform
-Input should be a complex spectrogram, output is mono Wave
-"""   
 class ISTFT(Processor):
+    """
+    Inverse Short-Time Fourier Transform
+    Input should be a complex spectrogram, output is mono Wave
+    """   
 
     def __init__(self, window=None, fft_size=1024, hop_size=512, sample_rate = 44100):
         if window is None:
