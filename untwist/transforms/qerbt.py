@@ -2,7 +2,7 @@
 Quadratic ERB transform
 
 Based on:
-Emmanuel Vincent, "Musical source separation using time-frequency source priors," 
+Emmanuel Vincent, "Musical source separation using time-frequency source priors" ,
 IEEE Trans. on Audio, Speech and Language Processing, 14(1):91-98, 2006
 """
 
@@ -90,61 +90,12 @@ class QERBT(Processor):
         
         for b in range(self.n_bins): 
             w = self.widths[b]
-            wc = 1/np.square(w+1)
+            wc = 1 / np.square(w + 1)
             filter = self.filters[b]
             band = fftfilt(filter, wave.zero_pad(0, 2 * w)[:,0])
             band = band[w : w + m, np.newaxis]    
             for t in range(n):
                 frame = band[t * self.w_len / 2:
                              t * self.w_len / 2 + self.w_len,:] * win_ratios[t]
-                result[b, t] =  wc * np.real(np.conj(np.dot(frame.conj().T,frame)))
-        return result
-        
-
-class QERBFilter(QERBT):    
-    
-    def make_bin_weights(self):
-        erb_max = hz2erb(self.sr/2.0)
-        ngrid = 1000
-        erb_grid = np.arange(ngrid) * erb_max / (ngrid - 1)
-        hz_grid = (np.exp(erb_grid / 9.26) - 1) / 00437
-        resp = np.zeros(ngrid, self.n_bins)
-        for b in range(self.n_bins): 
-            w = self.widths[b]
-            r = 1 / self.sr * (2 * w + 1) * (hz_grid - self.hz_freqs(bin))
-            resp[:,b] = np.square(np.sinc(r)+ .5 * np.sinc(r+1) + .5*np.sinc(r-1));
-        self.weights = np.multiply(linalg.pinv(resp)*np.ones((ngrid,1)));
-    
-    def process(self, wave, W):
-        wave.check_mono()
-        if wave.sample_rate != self.sr:
-            raise Exception("Wrong sample rate")
-        
-        n = int(np.ceil(2 * wave.num_frames / float(self.w_len)))
-        m = (n + 1) * self.w_len / 2 
-        if n != W.shape[1]:
-            raise Exception("Wrong size for W")
-        swindow = self.make_signal_window(n)
-        win_ratios = [self.window / swindow[t * self.w_len / 2 : 
-            t * self.w_len / 2 + self.w_len] 
-            for t in range(n)]
-        wave = wave.zero_pad(0, (n + 1) * self.w_len / 2.0 - wave.num_frames)
-        wave = audio.Wave(signal.hilbert(wave), wave.sample_rate)        
-        result = np.zeros((self.n_bins, n))
-        
-        for b in range(self.n_bins): 
-            w = self.widths[b]
-            wc = 1/np.square(w + 1)
-            filter = 1/w * self.filters[b]
-            band = fftfilt(filter, wave.zero_pad(0, 2 * w)[:,0])### TODO: do we need this?
-            band = band[w : w + (n + 1) * self.w_len / 2, np.newaxis]
-            out_band = audio.Wave[np.zeros((n*self.w_len / 2 ,1))]    
-            for t in range(n):
-                start = t * self.w_len / 2
-                end = t * self.w_len / 2 + self.w_len
-                frame = np.square(band[start:end,:] * win_ratios[t])
-                result[b, t] =  wc * np.real(np.conj(np.dot(frame.conj().T,frame)))
-                out_band[start:end,:] = out_band[start:end,:] + frame * W[b,t]      
-            out_band = np.real(fftfilt(filter, out_band.zero_pad(0, 2 * w)))
-            result = result + self.weights[bin] * out_band[w + 1 : w + m,:];          
-        return result
+                result[b, t] =  wc * np.real(np.conj(np.dot(frame.conj().T, frame)))
+        return audio.Spectrogram(result, self.sr, self.w_len, self.w_len / 2)
