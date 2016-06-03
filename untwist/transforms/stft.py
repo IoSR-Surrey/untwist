@@ -35,14 +35,14 @@ class STFT(Processor):
         frames = stride_tricks.as_strided(wave, shape=(num_frames, window_size),
             strides=(col_size*self.hop_size, col_size)).copy()
         frames *= self.window
-        transform = np.fft.rfft(frames, self.fft_size)        
-        return audio.Spectrogram(transform.T[:,1:-1], # undo padding
+        transform = np.fft.rfft(frames, self.fft_size)
+        return audio.Spectrogram(transform.T,
             wave.sample_rate, len(self.window), self.hop_size)
             
             
 """
 Inverse Short-time Fourier Transform
-Input should be a complex spectrogram , output is mono Wave
+Input should be a complex spectrogram, output is mono Wave
 """   
 class ISTFT(Processor):
 
@@ -59,8 +59,8 @@ class ISTFT(Processor):
         frames = np.fft.irfft(spectrogram.T)
         result_length = ((frames.shape[0] - 1) * self.hop_size) + self.fft_size
         result = np.zeros((result_length, 1))
-        for i in range(frames.shape[0]):            
+        for i in range(frames.shape[0]):
             indices = i * self.hop_size + np.r_[0:self.fft_size]
             result[indices] = result[indices] + frames[i,:].reshape(self.fft_size,1)
-        result = result[self.hop_size:result_length-self.hop_size]
+        result = result[self.hop_size:result_length - self.hop_size]
         return audio.Wave(result, self.sample_rate)
