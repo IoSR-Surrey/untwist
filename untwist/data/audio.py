@@ -26,14 +26,21 @@ eps = np.spacing(1)
 
 class Signal(np.ndarray):
     """
-    Time domain signal. Layout is one column per channel
-    """
+    Time domain signal. Layout is one column per channel.    
     
+    Parameters
+    ----------
+    
+    samples: ndarray
+        Signal data.
+    sample_rate: int
+        Sample rate in samples / second.
+    """    
     __array_priority__ = 10
-    def __new__(cls, data, sample_rate= 44100):
-        data = ensure2D(data)
+    def __new__(cls, samples, sample_rate = 44100):
+        data = ensure2D(samples)
         instance = np.ndarray.__new__(cls, 
-            data.shape, dtype = data.dtype, strides = data.strides, buffer = data)
+            samples.shape, dtype = samples.dtype, strides = samples.strides, buffer = samples)
         instance.sample_rate = sample_rate
         return instance
 
@@ -49,22 +56,41 @@ class Signal(np.ndarray):
                 
     @property  
     def num_channels(self):
+        """
+        Number of channels
+        """
         return 1 if len(self.shape)==1 else self.shape[1]
 
     @property
     def num_frames(self):
+        """
+        Number of frames (samples)
+        """
         return self.shape[0]
 
     def check_mono(self):
+        """
+        Utility for ensuring the signal is mono (one channel)
+        """
         if self.num_channels > 1:
             raise ChannelLayoutException()
             
     def as_ndarray(self):
+        """
+        Return the data as ndarray again
+        """
         return np.array(self)
 
 class Wave(Signal):
     """
-    Audio waveform
+    Audio waveform signal.
+    
+    Parameters
+    ----------    
+    samples: ndarray
+        Signal data.
+    sample_rate: int
+        Sample rate in samples / second.
     """
 
     def __init__(self, samples, sample_rate):
@@ -77,7 +103,15 @@ class Wave(Signal):
         self.sample_rate = getattr(obj, 'sample_rate', None)
             
     @classmethod
-    def read(cls,filename):
+    def read(cls, filename):
+        """
+        Read an audio file (only wav is supported).
+        
+        Parameters
+        ----------
+        filename: string
+            Path to the wav file.        
+        """
         sample_rate, samples = wavfile.read(filename)
         if samples.dtype==np.dtype('int16'):            
             samples = samples.astype(types.float_) / np.iinfo(np.dtype('int16')).min
@@ -87,34 +121,46 @@ class Wave(Signal):
         return instance
         
     def write(self, filename):
+        """
+        Write the data to an audio file (only wav is supported).
+        
+        Parameters
+        ----------
+        filename: string
+            Path to the wav file.        
+        """
+
         wavfile.write(filename, self.sample_rate, self)
         
-    @classmethod
-    def mix(cls, waves):
-        if len(waves)==1: return waves[0].normalize()
-        lengths = [np.atleast_2d(w).shape[0] for w in waves]
-        widths = [np.atleast_2d(w).shape[1] for w in waves]
-        if len(set(lengths)) > 1 or len(set(widths)) > 1:
-            raise ArgumentException("inputs should have the same shape")
-        mixed = np.zeros(waves[0].shape)
-        for w in waves:
-            w.normalize()
-            w = np.divide(w,len(waves)) 
-            mixed = mixed + w
-        instance = cls(mixed, waves[0].sample_rate)
-        return instance
-
     def normalize(self):
-        return Wave(np.divide(self, np.max(self,0)), self.sample_rate)                
+        """
+        Normalize by maximum amplitude.
+        """
+        return Wave(np.divide(self, np.max(np.abs(self), 0)), self.sample_rate)                
             
-    def zero_pad(self, start_frames, end_frames=0):
+    def zero_pad(self, start_frames, end_frames = 0):
+        """
+        Pad with zeros at the start and/or end
+        
+        Parameters
+        ----------
+        start_frames: int
+            Number of zeros at the start.
+        end_frames: int
+            Number of zeros at the end.
+
+        """
+
         start = np.zeros((start_frames, self.num_channels),types.float_)
         end = np.zeros((end_frames,self.num_channels),types.float_)
-        # avoid shape to be (N,)        
+        # avoid 1d shape
         tmp = self.reshape(self.shape[0], self.num_channels)
         return Wave(np.concatenate((start,tmp,end)), self.sample_rate)
 
     def plot(self):
+        """
+        Plot the waveofrm using matplotlib.
+        """
         time_values = np.arange(self.num_frames)/float(self.sample_rate)
         if self.num_channels == 1:
             f = plt.plot(time_values, self)
@@ -126,12 +172,23 @@ class Wave(Signal):
         return f
 
     def play(self, stop_func = None):
+        """
+        Play the sound with the current audio driver.
+        
+        Parameters
+        ----------
+        stop_func: function
+            Function to execute when the sound ends.
+        """
         if self.stream is None: 
             self.stream = audio_driver.play(
                 self, sr = self.sample_rate, stop_func = stop_func
             )
 
     def stop(self):
+        """
+        Stop playback if playing        .
+        """
         audio_driver.stop(self.stream)
         self.stream = None
         
@@ -144,7 +201,7 @@ class Wave(Signal):
 
 class Spectrum(Signal):
     """
-    Audio Spectrum.
+    Audio spectrum complex signal.
     """
         
     def __array_finalize__(self, obj):
@@ -154,12 +211,21 @@ class Spectrum(Signal):
         self.sample_rate = getattr(obj, 'hop_size', None)
     
     def magnitude(self):
-       return np.abs(self) 
+        """
+        Return the magnitude spectrum.
+        """
+        return np.abs(self) 
 
     def phase(self):
+        """
+        Return the phase spectrum.
+        """
         return np.angle(self)
         
-    def plot(self):# magnitude and phase
+    def plot(self):
+        """
+        Plot magnitude and phase.
+        """
         f, axes = plt.subplots(2, sharex=True)
         axes[0].plot(self.magnitude())
         axes[0].plot(self.phase())
@@ -169,12 +235,23 @@ class Spectrum(Signal):
         
 class Spectrogram(Spectrum):
     """
-    Audio Spectrogram (complex). 
+    Complex audio spectrogram matrix.
     Rows are frequency bins (0th is the lowest frequency), columns are time bins.
+    
+    Parameters
+    ----------
+    samples: complex
+        Spectrogram data.
+    sample_rate: int
+        Sample rate in samples / second of the original time domain signal.
+    window_size: int
+        Window size of the time-frequency transform used to obtain the spectrogram.
+    hop_size: int
+        Hop size of the time-frequency transform used to obtain the spectrogram.
     """
     
-    def __new__(cls, data, sample_rate = 44100, window_size = 1024, hop_size = 512):
-        instance = Signal.__new__(cls, data, sample_rate)             
+    def __new__(cls, samples, sample_rate = 44100, window_size = 1024, hop_size = 512):
+        instance = Signal.__new__(cls, samples, sample_rate)             
         instance.window_size = window_size
         instance.hop_size = hop_size
         return instance
@@ -191,14 +268,41 @@ class Spectrogram(Spectrum):
 
     @property
     def num_frames(self):
+        """
+        Number of spectral frames.
+        """
         return self.shape[1]
             
-    def plot(self,**kwargs):
+    def plot(self,**kwargs):        
         return self.magnitude_plot(**kwargs )
         
     def magnitude_plot(self, colormap = "CMRmap", min_freq = 0, max_freq = None, 
         axes = None, label_x = True, label_y = True, title = None, 
-        colorbar = True, log_mag = True):            
+        colorbar = True, log_mag = True):
+        """
+        Plot the magnitude spectrogram
+        
+        Parameters
+        ----------
+        colormap: string
+            Matplotlib colormap.
+        min_freq: float
+            minimum frequency in Hz (for labelling the axis).
+        max_freq: float
+            maximum frequency in Hz (for labelling the axis).
+        axes: matplotlib axes object
+            Axes object for plotting on existing figure.
+        label_x: boolean
+            Add labels to x axis.
+        label_y: boolean
+            Add labels to y axis.
+        title: string
+            Plot title (overlaid on image).
+        colorbar: boolean
+            Add a colorbar.
+        log_mag: boolean
+            Plot log magnitude.            
+        """
         mag = self.magnitude()
         if log_mag: 
             mag = 20. * np.log10((mag / np.max(mag)) + np.spacing(1))
@@ -236,6 +340,27 @@ class TFMask(Spectrogram):
 
     def plot(self, mask_color = (1, 0, 0, 0.5), min_freq = 0, max_freq = None, 
         axes = None, label_x = True, label_y = True, title = None):
+        """
+        Plot the time-frequency mask. 
+        
+        Parameters
+        ----------
+        mask_color: tuple
+            Color specification (including alpha) for the mask
+        min_freq: float
+            minimum frequency in Hz (for labelling the axis).
+        max_freq: float
+            maximum frequency in Hz (for labelling the axis).
+        axes: matplotlib axes object
+            Axes object for plotting on existing figure. 
+            If provided, the mask is assumed to be overlaif on a spectrogram.
+        label_x: boolean
+            Add labels to x axis.
+        label_y: boolean
+            Add labels to y axis.
+        title: string
+            Plot title (overlaid on image).
+        """                                        
         if axes == None: 
             colormap =  LinearSegmentedColormap.from_list("map",["white","black"])
         else:
