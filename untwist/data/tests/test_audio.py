@@ -6,7 +6,7 @@ from ...transforms.stft import STFT
 
 def test_wave_io():
     audio_dir = os.path.dirname(__file__) + "/" + ("../") * 3 + "audio/"
-    fname = audio_dir+"noise.wav"    
+    fname = audio_dir+"noise.wav"
     w1 = Wave(np.random.normal(0, 1, 44100), 44100)
     assert(len(w1.shape) == 2)    
     w1.write(fname)
