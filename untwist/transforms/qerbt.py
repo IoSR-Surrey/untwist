@@ -11,6 +11,7 @@ from numpy.lib import stride_tricks
 from scipy import signal
 from ..base import Processor
 from ..data import audio
+from numpy import linalg
 
 def fftfilt(b, x, *n):
     N_x = len(x)
@@ -103,3 +104,55 @@ class QERBT(Processor):
                              t * self.w_len / 2 + self.w_len,:] * win_ratios[t]
                 result[b, t] =  wc * np.real(np.conj(np.dot(frame.conj().T, frame)))
         return audio.Spectrogram(result, self.sr, self.w_len, self.w_len / 2)
+        
+        
+class QERBFilter(QERBT):
+    """
+    Filterbank based on the QERBT transform.
+    """
+
+    def __init__(self, n_bins = 350, w_len = 2048, sr = 44100):
+        super(QERBFilter, self).__init__()
+        self.make_bin_weights()
+
+    def make_bin_weights(self):
+        erb_max = hz2erb(self.sr/2.0)
+        ngrid = 1000
+        erb_grid = np.arange(ngrid) * erb_max / (ngrid - 1)
+        hz_grid = (np.exp(erb_grid / 9.26) - 1) / 0.00437
+        resp = np.zeros((ngrid, self.n_bins))
+        for b in range(self.n_bins):
+            w = self.widths[b]
+            r =  (2.0 * w + 1.0) / self.sr * (hz_grid - self.hz_freqs[b])
+            resp[:,b] = np.square(np.sinc(r)+ 0.5 * np.sinc(r + 1.0) + 0.5 * np.sinc(r  - 1.0));
+        self.weights = np.dot(linalg.pinv(resp), np.ones((ngrid,1)))
+
+    def process(self, wave, W):
+        wave.check_mono()
+        if wave.sample_rate != self.sr: raise Exception("Wrong sample rate")
+        n = int(np.ceil(2 * wave.num_frames / float(self.w_len)))
+        m = (n + 1) * self.w_len / 2
+        if n != W.shape[1]: raise Exception("Wrong size for W")
+        swindow = self.make_signal_window(n)
+        win_ratios = [self.window / swindow[t * self.w_len / 2 :
+            t * self.w_len / 2 + self.w_len]
+            for t in range(n)]
+        wave = wave.zero_pad(0, (n + 1) * self.w_len / 2.0 - wave.num_frames)
+        wave = audio.Wave(signal.hilbert(wave), wave.sample_rate)
+        result = np.zeros(wave.shape)
+
+        for b in range(self.n_bins):    
+            w = self.widths[b]
+            wc = 1/np.square(w + 1)
+            filter = 1/w * self.filters[b]
+            band = fftfilt(filter, wave.zero_pad(0, 2 * w)[:,0])
+            band = band[w : w + (n + 1) * self.w_len / 2, np.newaxis]
+            out_band = audio.Wave(np.zeros(band.shape, np.complex128), wave.sample_rate)
+            for t in range(n):
+                start = t * self.w_len / 2
+                end = t * self.w_len / 2 + self.w_len
+                frame = band[start:end,:] * win_ratios[t]**2
+                out_band[start:end,:] = out_band[start:end,:] + frame * W[b,t]
+            out_band = np.real(fftfilt(filter, out_band.zero_pad(0, 2 * w)[:,0]))
+            result[:,0] = result[:,0] + self.weights[b] * out_band[w: w + m]
+        return result
