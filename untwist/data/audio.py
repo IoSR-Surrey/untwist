@@ -38,7 +38,7 @@ class Signal(np.ndarray):
     """    
     __array_priority__ = 10
     def __new__(cls, samples, sample_rate = 44100):
-        data = ensure2D(samples)
+        samples = ensure2D(samples)
         instance = np.ndarray.__new__(cls, 
             samples.shape, dtype = samples.dtype, strides = samples.strides, buffer = samples)
         instance.sample_rate = sample_rate
