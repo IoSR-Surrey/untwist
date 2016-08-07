@@ -12,6 +12,7 @@ from scipy import signal
 from ..base import Processor
 from ..data import audio
 from numpy import linalg
+from untwist.base import parallel_process
 
 def fftfilt(b, x, *n):
     N_x = len(x)
@@ -78,7 +79,8 @@ class QERBT(Processor):
             signal_window[s:e,:] = signal_window[s:e,:] + np.square(self.window)
         signal_window = np.sqrt(signal_window)
         return signal_window
-        
+    
+    @parallel_process(1,2)
     def process(self, wave):
         wave.check_mono()
         if wave.sample_rate != self.sr:

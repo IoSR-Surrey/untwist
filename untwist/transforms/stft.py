@@ -6,6 +6,7 @@ import numpy as np
 from numpy.lib import stride_tricks
 from ..base import Processor
 from ..data import audio
+from untwist.base import parallel_process
 
 
 
@@ -22,7 +23,8 @@ class STFT(Processor):
             self.window = window
         self.fft_size = fft_size
         self.hop_size = hop_size        
-        
+     
+    @parallel_process(1,2)
     def process(self, wave):
         wave.check_mono()
         window_size = len(self.window)
@@ -54,6 +56,7 @@ class ISTFT(Processor):
         self.hop_size = hop_size
         self.sample_rate = sample_rate
         
+    @parallel_process(2,1)
     def process(self, spectrogram):
         frames = np.fft.irfft(spectrogram.T)
         result_length = ((frames.shape[0] - 1) * self.hop_size) + self.fft_size

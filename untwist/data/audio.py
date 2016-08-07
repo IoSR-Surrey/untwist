@@ -6,7 +6,7 @@ Should always inherit from ndarray, but utility functions may be added, e.g. loa
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import wavfile
-from ..base import types
+from ..base import types as _types
 from ..base.exceptions import *
 from ..soundcard import audio_driver
 from matplotlib.colors import LinearSegmentedColormap
@@ -48,12 +48,22 @@ class Signal(np.ndarray):
         if obj is None: return
         self.sample_rate = getattr(obj, 'sample_rate', None)
 
-    def __array_prepare__(self, out_arr, context = None):        
+    def __array_prepare__(self, out_arr, context = None): 
         return np.ndarray.__array_prepare__(self, out_arr, context)
         
-    def __array_wrap__(self, out_arr, context = None):        
+    def __array_wrap__(self, out_arr, context = None):    
         return np.ndarray.__array_wrap__(self, out_arr, context)
-                
+        
+        
+    def __reduce__(self): #pickle additional attributes
+        pickled_state = super(Signal, self).__reduce__()
+        new_state = pickled_state[2] + (self.sample_rate,)
+        return (pickled_state[0], pickled_state[1], new_state)
+
+    def __setstate__(self, state):
+        self.sample_rate = state[-1]
+        super(Signal, self).__setstate__(state[0:-1])
+                 
     @property  
     def num_channels(self):
         """
@@ -101,7 +111,7 @@ class Wave(Signal):
         if obj is None: return
         self.stream = getattr(obj, 'stream', None)
         self.sample_rate = getattr(obj, 'sample_rate', None)
-            
+
     @classmethod
     def read(cls, filename):
         """
@@ -114,7 +124,7 @@ class Wave(Signal):
         """
         sample_rate, samples = wavfile.read(filename)
         if samples.dtype==np.dtype('int16'):            
-            samples = samples.astype(types.float_) / np.iinfo(np.dtype('int16')).min
+            samples = samples.astype(_types.float_) / np.iinfo(np.dtype('int16')).min
         if len(samples.shape)==1:
             samples = samples.reshape((samples.shape[0],1))
         instance = cls(samples, sample_rate)
@@ -151,8 +161,8 @@ class Wave(Signal):
 
         """
 
-        start = np.zeros((start_frames, self.num_channels),types.float_)
-        end = np.zeros((end_frames,self.num_channels),types.float_)
+        start = np.zeros((start_frames, self.num_channels),_types.float_)
+        end = np.zeros((end_frames,self.num_channels),_types.float_)
         # avoid 1d shape
         tmp = self.reshape(self.shape[0], self.num_channels)
         return Wave(np.concatenate((start,tmp,end)), self.sample_rate)
@@ -187,7 +197,7 @@ class Wave(Signal):
 
     def stop(self):
         """
-        Stop playback if playing        .
+        Stop playback if playing.
         """
         audio_driver.stop(self.stream)
         self.stream = None
@@ -197,7 +207,11 @@ class Wave(Signal):
         stop_func= None):
         return audio_driver.record(max_seconds, num_channels, sr, stop_func)
 
+    @property
+    def duration(self):
+        return float(self.shape[0]) / self.sample_rate
 
+    
 
 class Spectrum(Signal):
     """
@@ -207,8 +221,18 @@ class Spectrum(Signal):
     def __array_finalize__(self, obj):
         if obj is None: return        
         self.sample_rate = getattr(obj, 'sample_rate', None)
-        self.sample_rate = getattr(obj, 'window_size', None)
-        self.sample_rate = getattr(obj, 'hop_size', None)
+        self.window_size = getattr(obj, 'window_size', None)
+        self.hop_size = getattr(obj, 'hop_size', None)
+    
+    def __reduce__(self): #pickle additional attributes
+        pickled_state = super(Spectrum, self).__reduce__()
+        new_state = pickled_state[2] + (self.window_size, self.hop_size)
+        return (pickled_state[0], pickled_state[1], new_state)
+
+    def __setstate__(self, state):
+        self.hop_size = state[-1]
+        self.window_size = state[-2]
+        super(Spectrum, self).__setstate__(state[0:-2])
     
     def magnitude(self):
         """
@@ -381,7 +405,7 @@ class BinaryMask(TFMask):
     def __new__(cls, target, background, threshold = 0):
         tm = target.magnitude() + eps
         bm = background.magnitude() + eps
-        mask = (20 * np.log10(tm / bm) > threshold).astype(types.float_)
+        mask = (20 * np.log10(tm / bm) > threshold).astype(_types.float_)
         instance = TFMask.__new__(cls, mask)
         instance.sample_rate = target.sample_rate
         instance.window_size = target.window_size
@@ -397,7 +421,7 @@ class RatioMask(TFMask):
     def __new__(cls, target, background, p = 1):
         tm = target.magnitude() + eps
         bm = background.magnitude() + eps
-        mask = (tm**p / (tm + bm)**p).astype(types.float_)
+        mask = (tm**p / (tm + bm)**p).astype(_types.float_)
         instance = TFMask.__new__(cls, mask)
         instance.sample_rate = target.sample_rate
         instance.window_size = target.window_size

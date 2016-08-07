@@ -6,6 +6,7 @@ from .types import float_
 from .types import complex_
 from .exceptions import ChannelLayoutException
 from .exceptions import ArgumentException
+from .parallel import parallel_process
 
 __all__ = [
 			'Processor',
@@ -15,5 +16,6 @@ __all__ = [
 			'float_',
 			'complex_',
 			'ChannelLayoutException',
-			'ArgumentException'
+			'ArgumentException',			             
+			'parallel_process'
 		   ]
