@@ -4,7 +4,7 @@ Abstract base classes for different types of algorithms (mainly Processor for no
 
 import abc
 
-class Processor:
+class Processor(object):
     """
     Processor objects are the core of the framework. It should be possible to 
     implement any algorithm as a processor. The interface is similar to most 
@@ -25,7 +25,7 @@ class Processor:
         pass        
     
 
-class Model:
+class Model(object):
     """
     Models are algorithms that can be trained and have some state. 
     The state can be saved and used to make predictions
