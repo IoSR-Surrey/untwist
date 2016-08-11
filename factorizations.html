@@ -1,0 +1,177 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Factorizations &mdash; untwist 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="untwist 0.1 documentation" href="index.html" />
+    <link rel="next" title="HPSS" href="hpss.html" />
+    <link rel="prev" title="Transforms" href="transforms.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="hpss.html" title="HPSS"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="transforms.html" title="Transforms"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">untwist 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="factorizations">
+<span id="id1"></span><h1>Factorizations<a class="headerlink" href="#factorizations" title="Permalink to this headline">¶</a></h1>
+<span class="target" id="module-untwist.factorizations"></span><dl class="class">
+<dt id="untwist.factorizations.NMF">
+<em class="property">class </em><code class="descclassname">untwist.factorizations.</code><code class="descname">NMF</code><span class="sig-paren">(</span><em>rank</em>, <em>update_func='kl'</em>, <em>iterations=100</em>, <em>threshold=None</em>, <em>W_norm=2</em>, <em>H_norm=0</em>, <em>update_W=True</em>, <em>update_H=True</em>, <em>return_divergence=False</em>, <em>beta=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/factorizations/nmf.html#NMF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.factorizations.NMF" title="Permalink to this definition">¶</a></dt>
+<dd><p>General NMF class, including euclidean, kl and beta-divergence 
+implementations. For supervised NMF, typically set update_W 
+to false in the constructor and provide a W0 to the process method</p>
+<dl class="method">
+<dt id="untwist.factorizations.NMF.beta_updates">
+<code class="descname">beta_updates</code><span class="sig-paren">(</span><em>V</em>, <em>W</em>, <em>H</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/factorizations/nmf.html#NMF.beta_updates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.factorizations.NMF.beta_updates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optimize B-divergence</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="untwist.factorizations.NMF.divergence">
+<code class="descname">divergence</code><span class="sig-paren">(</span><em>V</em>, <em>W</em>, <em>H</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/factorizations/nmf.html#NMF.divergence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.factorizations.NMF.divergence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute divergence between reconstruction and original</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="untwist.factorizations.NMF.euc_updates">
+<code class="descname">euc_updates</code><span class="sig-paren">(</span><em>V</em>, <em>W</em>, <em>H</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/factorizations/nmf.html#NMF.euc_updates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.factorizations.NMF.euc_updates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optimize Euclidean distance</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="untwist.factorizations.NMF.is_updates">
+<code class="descname">is_updates</code><span class="sig-paren">(</span><em>V</em>, <em>W</em>, <em>H</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/factorizations/nmf.html#NMF.is_updates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.factorizations.NMF.is_updates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optimize Itakura-Saito divergence (using B-divergence)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="untwist.factorizations.NMF.kl_updates">
+<code class="descname">kl_updates</code><span class="sig-paren">(</span><em>V</em>, <em>W</em>, <em>H</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/factorizations/nmf.html#NMF.kl_updates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.factorizations.NMF.kl_updates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optimize Kullback-Leibler divergence</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="untwist.factorizations.NMF.normalize">
+<code class="descname">normalize</code><span class="sig-paren">(</span><em>X</em>, <em>p</em>, <em>axis</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/factorizations/nmf.html#NMF.normalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.factorizations.NMF.normalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Normalize marix (W or H)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="untwist.factorizations.NMF.process">
+<code class="descname">process</code><span class="sig-paren">(</span><em>V</em>, <em>W0=None</em>, <em>H0=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/factorizations/nmf.html#NMF.process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.factorizations.NMF.process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize and compute multiplicative updates iterations</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="untwist.factorizations.RPCA">
+<em class="property">class </em><code class="descclassname">untwist.factorizations.</code><code class="descname">RPCA</code><span class="sig-paren">(</span><em>iterations=100</em>, <em>threshold=None</em>, <em>l=1</em>, <em>mu=1.25</em>, <em>rho=1.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/factorizations/rpca.html#RPCA"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.factorizations.RPCA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Robust PCA, Inexact ALM method
+Based on <a class="reference external" href="http://perception.csl.illinois.edu/matrix-rank/sample_code.html">http://perception.csl.illinois.edu/matrix-rank/sample_code.html</a></p>
+<dl class="method">
+<dt id="untwist.factorizations.RPCA.process">
+<code class="descname">process</code><span class="sig-paren">(</span><em>X</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/factorizations/rpca.html#RPCA.process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.factorizations.RPCA.process" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="transforms.html"
+                        title="previous chapter">Transforms</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="hpss.html"
+                        title="next chapter">HPSS</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/factorizations.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="hpss.html" title="HPSS"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="transforms.html" title="Transforms"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">untwist 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, University of Surey.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.2.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,423 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Data &mdash; untwist 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="untwist 0.1 documentation" href="index.html" />
+    <link rel="next" title="Soundcard" href="soundcard.html" />
+    <link rel="prev" title="Base" href="base.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="soundcard.html" title="Soundcard"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="base.html" title="Base"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">untwist 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="data">
+<span id="id1"></span><h1>Data<a class="headerlink" href="#data" title="Permalink to this headline">¶</a></h1>
+<span class="target" id="module-untwist.data"></span><dl class="class">
+<dt id="untwist.data.Signal">
+<em class="property">class </em><code class="descclassname">untwist.data.</code><code class="descname">Signal</code><a class="reference internal" href="_modules/untwist/data/audio.html#Signal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Signal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Time domain signal. Layout is one column per channel.</p>
+<dl class="docutils">
+<dt>samples: ndarray</dt>
+<dd>Signal data.</dd>
+<dt>sample_rate: int</dt>
+<dd>Sample rate in samples / second.</dd>
+</dl>
+<dl class="method">
+<dt id="untwist.data.Signal.as_ndarray">
+<code class="descname">as_ndarray</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/audio.html#Signal.as_ndarray"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Signal.as_ndarray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the data as ndarray again</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Signal.check_mono">
+<code class="descname">check_mono</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/audio.html#Signal.check_mono"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Signal.check_mono" title="Permalink to this definition">¶</a></dt>
+<dd><p>Utility for ensuring the signal is mono (one channel)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="untwist.data.Signal.num_channels">
+<code class="descname">num_channels</code><a class="headerlink" href="#untwist.data.Signal.num_channels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of channels</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="untwist.data.Signal.num_frames">
+<code class="descname">num_frames</code><a class="headerlink" href="#untwist.data.Signal.num_frames" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of frames (samples)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="untwist.data.Wave">
+<em class="property">class </em><code class="descclassname">untwist.data.</code><code class="descname">Wave</code><span class="sig-paren">(</span><em>samples</em>, <em>sample_rate</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/audio.html#Wave"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Wave" title="Permalink to this definition">¶</a></dt>
+<dd><p>Audio waveform signal.</p>
+<dl class="docutils">
+<dt>samples: ndarray</dt>
+<dd>Signal data.</dd>
+<dt>sample_rate: int</dt>
+<dd>Sample rate in samples / second.</dd>
+</dl>
+<dl class="attribute">
+<dt id="untwist.data.Wave.duration">
+<code class="descname">duration</code><a class="headerlink" href="#untwist.data.Wave.duration" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Wave.normalize">
+<code class="descname">normalize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/audio.html#Wave.normalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Wave.normalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Normalize by maximum amplitude.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Wave.play">
+<code class="descname">play</code><span class="sig-paren">(</span><em>stop_func=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/audio.html#Wave.play"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Wave.play" title="Permalink to this definition">¶</a></dt>
+<dd><p>Play the sound with the current audio driver.</p>
+<dl class="docutils">
+<dt>stop_func: function</dt>
+<dd>Function to execute when the sound ends.</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Wave.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/audio.html#Wave.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Wave.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the waveofrm using matplotlib.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="untwist.data.Wave.read">
+<em class="property">classmethod </em><code class="descname">read</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/audio.html#Wave.read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Wave.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read an audio file (only wav is supported).</p>
+<dl class="docutils">
+<dt>filename: string</dt>
+<dd>Path to the wav file.</dd>
+</dl>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="untwist.data.Wave.record">
+<em class="property">classmethod </em><code class="descname">record</code><span class="sig-paren">(</span><em>max_seconds=10</em>, <em>num_channels=2</em>, <em>sr=44100</em>, <em>stop_func=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/audio.html#Wave.record"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Wave.record" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Wave.stop">
+<code class="descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/audio.html#Wave.stop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Wave.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stop playback if playing.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Wave.write">
+<code class="descname">write</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/audio.html#Wave.write"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Wave.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the data to an audio file (only wav is supported).</p>
+<dl class="docutils">
+<dt>filename: string</dt>
+<dd>Path to the wav file.</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Wave.zero_pad">
+<code class="descname">zero_pad</code><span class="sig-paren">(</span><em>start_frames</em>, <em>end_frames=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/audio.html#Wave.zero_pad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Wave.zero_pad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pad with zeros at the start and/or end</p>
+<dl class="docutils">
+<dt>start_frames: int</dt>
+<dd>Number of zeros at the start.</dd>
+<dt>end_frames: int</dt>
+<dd>Number of zeros at the end.</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="untwist.data.Spectrum">
+<em class="property">class </em><code class="descclassname">untwist.data.</code><code class="descname">Spectrum</code><a class="reference internal" href="_modules/untwist/data/audio.html#Spectrum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Spectrum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Audio spectrum complex signal.</p>
+<dl class="method">
+<dt id="untwist.data.Spectrum.magnitude">
+<code class="descname">magnitude</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/audio.html#Spectrum.magnitude"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Spectrum.magnitude" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the magnitude spectrum.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Spectrum.phase">
+<code class="descname">phase</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/audio.html#Spectrum.phase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Spectrum.phase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the phase spectrum.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Spectrum.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/audio.html#Spectrum.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Spectrum.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot magnitude and phase.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="untwist.data.Spectrogram">
+<em class="property">class </em><code class="descclassname">untwist.data.</code><code class="descname">Spectrogram</code><a class="reference internal" href="_modules/untwist/data/audio.html#Spectrogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Spectrogram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Complex audio spectrogram matrix.
+Rows are frequency bins (0th is the lowest frequency), columns are time bins.</p>
+<dl class="docutils">
+<dt>samples: complex</dt>
+<dd>Spectrogram data.</dd>
+<dt>sample_rate: int</dt>
+<dd>Sample rate in samples / second of the original time domain signal.</dd>
+<dt>window_size: int</dt>
+<dd>Window size of the time-frequency transform used to obtain the spectrogram.</dd>
+<dt>hop_size: int</dt>
+<dd>Hop size of the time-frequency transform used to obtain the spectrogram.</dd>
+</dl>
+<dl class="method">
+<dt id="untwist.data.Spectrogram.magnitude_plot">
+<code class="descname">magnitude_plot</code><span class="sig-paren">(</span><em>colormap='CMRmap'</em>, <em>min_freq=0</em>, <em>max_freq=None</em>, <em>axes=None</em>, <em>label_x=True</em>, <em>label_y=True</em>, <em>title=None</em>, <em>colorbar=True</em>, <em>log_mag=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/audio.html#Spectrogram.magnitude_plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Spectrogram.magnitude_plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the magnitude spectrogram</p>
+<dl class="docutils">
+<dt>colormap: string</dt>
+<dd>Matplotlib colormap.</dd>
+<dt>min_freq: float</dt>
+<dd>minimum frequency in Hz (for labelling the axis).</dd>
+<dt>max_freq: float</dt>
+<dd>maximum frequency in Hz (for labelling the axis).</dd>
+<dt>axes: matplotlib axes object</dt>
+<dd>Axes object for plotting on existing figure.</dd>
+<dt>label_x: boolean</dt>
+<dd>Add labels to x axis.</dd>
+<dt>label_y: boolean</dt>
+<dd>Add labels to y axis.</dd>
+<dt>title: string</dt>
+<dd>Plot title (overlaid on image).</dd>
+<dt>colorbar: boolean</dt>
+<dd>Add a colorbar.</dd>
+<dt>log_mag: boolean</dt>
+<dd>Plot log magnitude.</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="untwist.data.Spectrogram.num_channels">
+<code class="descname">num_channels</code><a class="headerlink" href="#untwist.data.Spectrogram.num_channels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="untwist.data.Spectrogram.num_frames">
+<code class="descname">num_frames</code><a class="headerlink" href="#untwist.data.Spectrogram.num_frames" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of spectral frames.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Spectrogram.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/audio.html#Spectrogram.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Spectrogram.plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="untwist.data.BinaryMask">
+<em class="property">class </em><code class="descclassname">untwist.data.</code><code class="descname">BinaryMask</code><a class="reference internal" href="_modules/untwist/data/audio.html#BinaryMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.BinaryMask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Binary Mask based on a comparison between target and background.
+If the threshold is 0, the mask is 1 when the target magnitude is larger 
+than the background, and 0 otherwise.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="untwist.data.RatioMask">
+<em class="property">class </em><code class="descclassname">untwist.data.</code><code class="descname">RatioMask</code><a class="reference internal" href="_modules/untwist/data/audio.html#RatioMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.RatioMask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ratio Mask: soft mask based on ratio of target to background magnitude, 
+with optional exponent p.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="untwist.data.Dataset">
+<em class="property">class </em><code class="descclassname">untwist.data.</code><code class="descname">Dataset</code><span class="sig-paren">(</span><em>x_width</em>, <em>x_type</em>, <em>y_width=0</em>, <em>y_type=&lt;type 'numpy.int64'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#Dataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Dataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>In-memory Dataset</p>
+<dl class="method">
+<dt id="untwist.data.Dataset.add">
+<code class="descname">add</code><span class="sig-paren">(</span><em>x</em>, <em>y=array([]</em>, <em>shape=(0</em>, <em>0)</em>, <em>dtype=float64)</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#Dataset.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Dataset.add" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Dataset.get_batch">
+<code class="descname">get_batch</code><span class="sig-paren">(</span><em>index</em>, <em>size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#Dataset.get_batch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Dataset.get_batch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Dataset.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#Dataset.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Dataset.load" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Dataset.normalize">
+<code class="descname">normalize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#Dataset.normalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Dataset.normalize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Dataset.normalize_points">
+<code class="descname">normalize_points</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#Dataset.normalize_points"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Dataset.normalize_points" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Dataset.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#Dataset.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Dataset.save" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Dataset.shuffle">
+<code class="descname">shuffle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#Dataset.shuffle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Dataset.shuffle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Dataset.standardize">
+<code class="descname">standardize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#Dataset.standardize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Dataset.standardize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.Dataset.standardize_points">
+<code class="descname">standardize_points</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#Dataset.standardize_points"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.Dataset.standardize_points" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="untwist.data.MMDataset">
+<em class="property">class </em><code class="descclassname">untwist.data.</code><code class="descname">MMDataset</code><span class="sig-paren">(</span><em>path</em>, <em>x_width=0</em>, <em>x_type=&lt;type 'float'&gt;</em>, <em>y_width=0</em>, <em>y_type=&lt;type 'numpy.int64'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#MMDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.MMDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Disk-based version using numpy memmap</p>
+<dl class="method">
+<dt id="untwist.data.MMDataset.add">
+<code class="descname">add</code><span class="sig-paren">(</span><em>x</em>, <em>y=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#MMDataset.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.MMDataset.add" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.MMDataset.get_batch">
+<code class="descname">get_batch</code><span class="sig-paren">(</span><em>index</em>, <em>size</em>, <em>normalization=2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#MMDataset.get_batch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.MMDataset.get_batch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.MMDataset.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#MMDataset.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.MMDataset.load" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.MMDataset.normalize_points">
+<code class="descname">normalize_points</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#MMDataset.normalize_points"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.MMDataset.normalize_points" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.MMDataset.save">
+<code class="descname">save</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#MMDataset.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.MMDataset.save" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.MMDataset.shuffle">
+<code class="descname">shuffle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#MMDataset.shuffle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.MMDataset.shuffle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.data.MMDataset.standardize_points">
+<code class="descname">standardize_points</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/data/dataset.html#MMDataset.standardize_points"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.data.MMDataset.standardize_points" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="base.html"
+                        title="previous chapter">Base</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="soundcard.html"
+                        title="next chapter">Soundcard</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/data.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="soundcard.html" title="Soundcard"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="base.html" title="Base"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">untwist 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, University of Surey.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.2.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>untwist.transforms.qerbt &mdash; untwist 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="untwist 0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">untwist 0.1 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for untwist.transforms.qerbt</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Quadratic ERB transform</span>
+
+<span class="sd">Based on:</span>
+<span class="sd">Emmanuel Vincent, &quot;Musical source separation using time-frequency source priors&quot; ,</span>
+<span class="sd">IEEE Trans. on Audio, Speech and Language Processing, 14(1):91-98, 2006</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy.lib</span> <span class="kn">import</span> <span class="n">stride_tricks</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">signal</span>
+<span class="kn">from</span> <span class="nn">..base</span> <span class="kn">import</span> <span class="n">Processor</span>
+<span class="kn">from</span> <span class="nn">..data</span> <span class="kn">import</span> <span class="n">audio</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">linalg</span>
+<span class="kn">from</span> <span class="nn">untwist.base</span> <span class="kn">import</span> <span class="n">parallel_process</span>
+
+<span class="k">def</span> <span class="nf">fftfilt</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">n</span><span class="p">):</span>
+    <span class="n">N_x</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">N_b</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">N_b</span><span class="p">)),</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">N_x</span><span class="p">)))</span>
+    <span class="n">cost</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">N_x</span> <span class="o">/</span> <span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="n">N_b</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">N</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">N</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">N_fft</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">N</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">cost</span><span class="p">)])</span>
+    <span class="n">N_fft</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">N_fft</span><span class="p">)</span>    
+    <span class="c1"># Compute the block length:</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">N_fft</span> <span class="o">-</span> <span class="n">N_b</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># Compute the transform of the filter:</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">b</span><span class="p">,</span><span class="n">N_fft</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N_x</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">N_x</span><span class="p">:</span>
+        <span class="n">il</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">([</span><span class="n">i</span><span class="o">+</span><span class="n">L</span><span class="p">,</span><span class="n">N_x</span><span class="p">])</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">([</span><span class="n">i</span><span class="o">+</span><span class="n">N_fft</span><span class="p">,</span><span class="n">N_x</span><span class="p">])</span>
+        <span class="n">yt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">il</span><span class="p">],</span><span class="n">N_fft</span><span class="p">)</span><span class="o">*</span><span class="n">H</span><span class="p">,</span><span class="n">N_fft</span><span class="p">)</span> <span class="c1"># Overlap..</span>
+        <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">k</span><span class="p">]</span> <span class="o">+</span> <span class="n">yt</span><span class="p">[:</span><span class="n">k</span><span class="o">-</span><span class="n">i</span><span class="p">]</span>                          <span class="c1"># and add</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="n">L</span>
+    <span class="k">return</span> <span class="n">y</span>  
+    
+<span class="k">def</span> <span class="nf">hz2erb</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mf">9.26</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">0.00437</span> <span class="o">*</span> <span class="n">f</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">erb2hz</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">f</span> <span class="o">/</span> <span class="mf">9.26</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mf">0.00437</span>
+    
+<div class="viewcode-block" id="QERBT"><a class="viewcode-back" href="../../../transforms.html#untwist.transforms.QERBT">[docs]</a><span class="k">class</span> <span class="nc">QERBT</span><span class="p">(</span><span class="n">Processor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Quadratic ERB transform processor, with independent window length </span>
+<span class="sd">    and number of bins. Returns a Spectrogram.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_bins</span> <span class="o">=</span> <span class="mi">350</span><span class="p">,</span> <span class="n">w_len</span> <span class="o">=</span> <span class="mi">2048</span><span class="p">,</span> <span class="n">sr</span> <span class="o">=</span> <span class="mi">44100</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span> <span class="o">=</span> <span class="n">n_bins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span> <span class="o">=</span> <span class="n">w_len</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sr</span> <span class="o">=</span> <span class="n">sr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">make_filterbank</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="QERBT.make_filterbank"><a class="viewcode-back" href="../../../transforms.html#untwist.transforms.QERBT.make_filterbank">[docs]</a>    <span class="k">def</span> <span class="nf">make_filterbank</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">erb_max</span> <span class="o">=</span> <span class="n">hz2erb</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sr</span><span class="o">/</span><span class="mf">2.0</span><span class="p">)</span>
+        <span class="n">erb_freqs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span><span class="p">)</span> <span class="o">*</span> <span class="n">erb_max</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hz_freqs</span> <span class="o">=</span> <span class="n">erb2hz</span><span class="p">(</span><span class="n">erb_freqs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">widths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">erb_max</span> <span class="o">*</span> 
+            <span class="mf">9.26</span> <span class="o">*</span> <span class="mf">0.00437</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sr</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">erb_freqs</span> <span class="o">/</span> <span class="mf">9.26</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span><span class="p">):</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">widths</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hz_freqs</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+            <span class="n">exponential</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">complex</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">f</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">sr</span> <span class="o">*</span> 
+                <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">w</span><span class="p">,</span> <span class="n">w</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hanning</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">w</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">exponential</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QERBT.make_signal_window"><a class="viewcode-back" href="../../../transforms.html#untwist.transforms.QERBT.make_signal_window">[docs]</a>    <span class="k">def</span> <span class="nf">make_signal_window</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_frames</span><span class="p">):</span>
+        <span class="n">half_win</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span> <span class="o">/</span> <span class="mf">2.0</span>
+        <span class="n">signal_window</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(((</span><span class="n">n_frames</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">half_win</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_frames</span><span class="p">):</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">t</span> <span class="o">*</span> <span class="n">half_win</span>
+            <span class="n">e</span> <span class="o">=</span> <span class="n">t</span> <span class="o">*</span> <span class="n">half_win</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span>
+            <span class="n">signal_window</span><span class="p">[</span><span class="n">s</span><span class="p">:</span><span class="n">e</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">signal_window</span><span class="p">[</span><span class="n">s</span><span class="p">:</span><span class="n">e</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="p">)</span>
+        <span class="n">signal_window</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">signal_window</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">signal_window</span></div>
+    
+    <span class="nd">@parallel_process</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wave</span><span class="p">):</span>
+        <span class="n">wave</span><span class="o">.</span><span class="n">check_mono</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">wave</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sr</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Wrong sample rate&quot;</span><span class="p">)</span>                              
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">wave</span><span class="o">.</span><span class="n">num_frames</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">w_len</span><span class="p">)))</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span> <span class="o">/</span> <span class="mi">2</span> 
+        <span class="n">swindow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_signal_window</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="n">win_ratios</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="o">/</span> <span class="n">swindow</span><span class="p">[</span><span class="n">t</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span> <span class="o">/</span> <span class="mi">2</span> <span class="p">:</span> 
+            <span class="n">t</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span><span class="p">]</span> 
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)]</span>
+        <span class="n">wave</span> <span class="o">=</span> <span class="n">wave</span><span class="o">.</span><span class="n">zero_pad</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">m</span> <span class="o">-</span> <span class="n">wave</span><span class="o">.</span><span class="n">num_frames</span><span class="p">)</span>
+        <span class="n">wave</span> <span class="o">=</span> <span class="n">audio</span><span class="o">.</span><span class="n">Wave</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">hilbert</span><span class="p">(</span><span class="n">wave</span><span class="p">),</span> <span class="n">wave</span><span class="o">.</span><span class="n">sample_rate</span><span class="p">)</span>        
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+        
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span><span class="p">):</span> 
+            <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">widths</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+            <span class="n">wc</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">w</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="nb">filter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filters</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+            <span class="n">band</span> <span class="o">=</span> <span class="n">fftfilt</span><span class="p">(</span><span class="nb">filter</span><span class="p">,</span> <span class="n">wave</span><span class="o">.</span><span class="n">zero_pad</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">w</span><span class="p">)[:,</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">band</span> <span class="o">=</span> <span class="n">band</span><span class="p">[</span><span class="n">w</span> <span class="p">:</span> <span class="n">w</span> <span class="o">+</span> <span class="n">m</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>    
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+                <span class="n">frame</span> <span class="o">=</span> <span class="n">band</span><span class="p">[</span><span class="n">t</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span> <span class="o">/</span> <span class="mi">2</span><span class="p">:</span>
+                             <span class="n">t</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span><span class="p">,:]</span> <span class="o">*</span> <span class="n">win_ratios</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">]</span> <span class="o">=</span>  <span class="n">wc</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">frame</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">frame</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">audio</span><span class="o">.</span><span class="n">Spectrogram</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span></div>
+        
+        
+<div class="viewcode-block" id="QERBFilter"><a class="viewcode-back" href="../../../transforms.html#untwist.transforms.QERBFilter">[docs]</a><span class="k">class</span> <span class="nc">QERBFilter</span><span class="p">(</span><span class="n">QERBT</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Filterbank based on the QERBT transform.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_bins</span> <span class="o">=</span> <span class="mi">350</span><span class="p">,</span> <span class="n">w_len</span> <span class="o">=</span> <span class="mi">2048</span><span class="p">,</span> <span class="n">sr</span> <span class="o">=</span> <span class="mi">44100</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">QERBFilter</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">make_bin_weights</span><span class="p">()</span>
+
+<div class="viewcode-block" id="QERBFilter.make_bin_weights"><a class="viewcode-back" href="../../../transforms.html#untwist.transforms.QERBFilter.make_bin_weights">[docs]</a>    <span class="k">def</span> <span class="nf">make_bin_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">erb_max</span> <span class="o">=</span> <span class="n">hz2erb</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sr</span><span class="o">/</span><span class="mf">2.0</span><span class="p">)</span>
+        <span class="n">ngrid</span> <span class="o">=</span> <span class="mi">1000</span>
+        <span class="n">erb_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">ngrid</span><span class="p">)</span> <span class="o">*</span> <span class="n">erb_max</span> <span class="o">/</span> <span class="p">(</span><span class="n">ngrid</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">hz_grid</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">erb_grid</span> <span class="o">/</span> <span class="mf">9.26</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mf">0.00437</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ngrid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span><span class="p">):</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">widths</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+            <span class="n">r</span> <span class="o">=</span>  <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">w</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">sr</span> <span class="o">*</span> <span class="p">(</span><span class="n">hz_grid</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">hz_freqs</span><span class="p">[</span><span class="n">b</span><span class="p">])</span>
+            <span class="n">resp</span><span class="p">[:,</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sinc</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sinc</span><span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sinc</span><span class="p">(</span><span class="n">r</span>  <span class="o">-</span> <span class="mf">1.0</span><span class="p">));</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">linalg</span><span class="o">.</span><span class="n">pinv</span><span class="p">(</span><span class="n">resp</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">ngrid</span><span class="p">,</span><span class="mi">1</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="QERBFilter.process"><a class="viewcode-back" href="../../../transforms.html#untwist.transforms.QERBFilter.process">[docs]</a>    <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wave</span><span class="p">,</span> <span class="n">W</span><span class="p">):</span>
+        <span class="n">wave</span><span class="o">.</span><span class="n">check_mono</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">wave</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sr</span><span class="p">:</span> <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Wrong sample rate&quot;</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">wave</span><span class="o">.</span><span class="n">num_frames</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">w_len</span><span class="p">)))</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="n">W</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span> <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Wrong size for W&quot;</span><span class="p">)</span>
+        <span class="n">swindow</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_signal_window</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="n">win_ratios</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="o">/</span> <span class="n">swindow</span><span class="p">[</span><span class="n">t</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span> <span class="o">/</span> <span class="mi">2</span> <span class="p">:</span>
+            <span class="n">t</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)]</span>
+        <span class="n">wave</span> <span class="o">=</span> <span class="n">wave</span><span class="o">.</span><span class="n">zero_pad</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">-</span> <span class="n">wave</span><span class="o">.</span><span class="n">num_frames</span><span class="p">)</span>
+        <span class="n">wave</span> <span class="o">=</span> <span class="n">audio</span><span class="o">.</span><span class="n">Wave</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">hilbert</span><span class="p">(</span><span class="n">wave</span><span class="p">),</span> <span class="n">wave</span><span class="o">.</span><span class="n">sample_rate</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">wave</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span><span class="p">):</span>    
+            <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">widths</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+            <span class="n">wc</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">w</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="nb">filter</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">w</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">filters</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+            <span class="n">band</span> <span class="o">=</span> <span class="n">fftfilt</span><span class="p">(</span><span class="nb">filter</span><span class="p">,</span> <span class="n">wave</span><span class="o">.</span><span class="n">zero_pad</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">w</span><span class="p">)[:,</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">band</span> <span class="o">=</span> <span class="n">band</span><span class="p">[</span><span class="n">w</span> <span class="p">:</span> <span class="n">w</span> <span class="o">+</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+            <span class="n">out_band</span> <span class="o">=</span> <span class="n">audio</span><span class="o">.</span><span class="n">Wave</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">band</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">),</span> <span class="n">wave</span><span class="o">.</span><span class="n">sample_rate</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">t</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span> <span class="o">/</span> <span class="mi">2</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="n">t</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_len</span>
+                <span class="n">frame</span> <span class="o">=</span> <span class="n">band</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">,:]</span> <span class="o">*</span> <span class="n">win_ratios</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span>
+                <span class="n">out_band</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">out_band</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">frame</span> <span class="o">*</span> <span class="n">W</span><span class="p">[</span><span class="n">b</span><span class="p">,</span><span class="n">t</span><span class="p">]</span>
+            <span class="n">out_band</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">fftfilt</span><span class="p">(</span><span class="nb">filter</span><span class="p">,</span> <span class="n">out_band</span><span class="o">.</span><span class="n">zero_pad</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">w</span><span class="p">)[:,</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="n">result</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">*</span> <span class="n">out_band</span><span class="p">[</span><span class="n">w</span><span class="p">:</span> <span class="n">w</span> <span class="o">+</span> <span class="n">m</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">result</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">untwist 0.1 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, University of Surey.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.2.
+    </div>
+  </body>
+</html>

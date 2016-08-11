@@ -1,0 +1,518 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>untwist.data.audio &mdash; untwist 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="untwist 0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">untwist 0.1 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for untwist.data.audio</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Audio representations, i.e. Wave, Spectrum, Spectrogram.</span>
+<span class="sd">Should always inherit from ndarray, but utility functions may be added, e.g. loading audio files, playing or plotting</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">scipy.io</span> <span class="kn">import</span> <span class="n">wavfile</span>
+<span class="kn">from</span> <span class="nn">..base</span> <span class="kn">import</span> <span class="n">types</span> <span class="k">as</span> <span class="n">_types</span>
+<span class="kn">from</span> <span class="nn">..base.exceptions</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">..soundcard</span> <span class="kn">import</span> <span class="n">audio_driver</span>
+<span class="kn">from</span> <span class="nn">matplotlib.colors</span> <span class="kn">import</span> <span class="n">LinearSegmentedColormap</span>
+
+
+
+<span class="sd">&quot;&quot;&quot; utility functions&quot;&quot;&quot;</span>
+
+<span class="k">def</span> <span class="nf">ensure2D</span><span class="p">(</span><span class="n">ndarray</span><span class="p">):</span>    
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ndarray</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">ndarray</span> <span class="o">=</span> <span class="n">ndarray</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">ndarray</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">1</span><span class="p">))</span>    
+    <span class="k">return</span> <span class="n">ndarray</span>
+
+<span class="n">eps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">spacing</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+
+
+<div class="viewcode-block" id="Signal"><a class="viewcode-back" href="../../../data.html#untwist.data.Signal">[docs]</a><span class="k">class</span> <span class="nc">Signal</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Time domain signal. Layout is one column per channel.    </span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    </span>
+<span class="sd">    samples: ndarray</span>
+<span class="sd">        Signal data.</span>
+<span class="sd">    sample_rate: int</span>
+<span class="sd">        Sample rate in samples / second.</span>
+<span class="sd">    &quot;&quot;&quot;</span>    
+    <span class="n">__array_priority__</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">sample_rate</span> <span class="o">=</span> <span class="mi">44100</span><span class="p">):</span>
+        <span class="n">samples</span> <span class="o">=</span> <span class="n">ensure2D</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+        <span class="n">instance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> 
+            <span class="n">samples</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">samples</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">strides</span> <span class="o">=</span> <span class="n">samples</span><span class="o">.</span><span class="n">strides</span><span class="p">,</span> <span class="nb">buffer</span> <span class="o">=</span> <span class="n">samples</span><span class="p">)</span>
+        <span class="n">instance</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">=</span> <span class="n">sample_rate</span>
+        <span class="k">return</span> <span class="n">instance</span>
+
+    <span class="k">def</span> <span class="nf">__array_finalize__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span> <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;sample_rate&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__array_prepare__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out_arr</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span> 
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__array_prepare__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out_arr</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">__array_wrap__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out_arr</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>    
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">__array_wrap__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out_arr</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+        
+        
+    <span class="k">def</span> <span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1">#pickle additional attributes</span>
+        <span class="n">pickled_state</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Signal</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__reduce__</span><span class="p">()</span>
+        <span class="n">new_state</span> <span class="o">=</span> <span class="n">pickled_state</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span><span class="p">,)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">pickled_state</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pickled_state</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">new_state</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__setstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Signal</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__setstate__</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                 
+    <span class="nd">@property</span>  
+    <span class="k">def</span> <span class="nf">num_channels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Number of channels</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mi">1</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">num_frames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Number of frames (samples)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Signal.check_mono"><a class="viewcode-back" href="../../../data.html#untwist.data.Signal.check_mono">[docs]</a>    <span class="k">def</span> <span class="nf">check_mono</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Utility for ensuring the signal is mono (one channel)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_channels</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ChannelLayoutException</span><span class="p">()</span></div>
+            
+<div class="viewcode-block" id="Signal.as_ndarray"><a class="viewcode-back" href="../../../data.html#untwist.data.Signal.as_ndarray">[docs]</a>    <span class="k">def</span> <span class="nf">as_ndarray</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the data as ndarray again</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="Wave"><a class="viewcode-back" href="../../../data.html#untwist.data.Wave">[docs]</a><span class="k">class</span> <span class="nc">Wave</span><span class="p">(</span><span class="n">Signal</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Audio waveform signal.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------    </span>
+<span class="sd">    samples: ndarray</span>
+<span class="sd">        Signal data.</span>
+<span class="sd">    sample_rate: int</span>
+<span class="sd">        Sample rate in samples / second.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stream</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Wave</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__array_finalize__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span> <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stream</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;stream&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;sample_rate&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Wave.read"><a class="viewcode-back" href="../../../data.html#untwist.data.Wave.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read an audio file (only wav is supported).</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename: string</span>
+<span class="sd">            Path to the wav file.        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sample_rate</span><span class="p">,</span> <span class="n">samples</span> <span class="o">=</span> <span class="n">wavfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">samples</span><span class="o">.</span><span class="n">dtype</span><span class="o">==</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s1">&#39;int16&#39;</span><span class="p">):</span>            
+            <span class="n">samples</span> <span class="o">=</span> <span class="n">samples</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">_types</span><span class="o">.</span><span class="n">float_</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s1">&#39;int16&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">min</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">samples</span> <span class="o">=</span> <span class="n">samples</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">instance</span> <span class="o">=</span> <span class="n">cls</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">instance</span></div>
+        
+<div class="viewcode-block" id="Wave.write"><a class="viewcode-back" href="../../../data.html#untwist.data.Wave.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the data to an audio file (only wav is supported).</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename: string</span>
+<span class="sd">            Path to the wav file.        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">wavfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="Wave.normalize"><a class="viewcode-back" href="../../../data.html#untwist.data.Wave.normalize">[docs]</a>    <span class="k">def</span> <span class="nf">normalize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Normalize by maximum amplitude.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Wave</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="mi">0</span><span class="p">)),</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span><span class="p">)</span>                </div>
+            
+<div class="viewcode-block" id="Wave.zero_pad"><a class="viewcode-back" href="../../../data.html#untwist.data.Wave.zero_pad">[docs]</a>    <span class="k">def</span> <span class="nf">zero_pad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_frames</span><span class="p">,</span> <span class="n">end_frames</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Pad with zeros at the start and/or end</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        start_frames: int</span>
+<span class="sd">            Number of zeros at the start.</span>
+<span class="sd">        end_frames: int</span>
+<span class="sd">            Number of zeros at the end.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">start</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">start_frames</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_channels</span><span class="p">),</span><span class="n">_types</span><span class="o">.</span><span class="n">float_</span><span class="p">)</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">end_frames</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">num_channels</span><span class="p">),</span><span class="n">_types</span><span class="o">.</span><span class="n">float_</span><span class="p">)</span>
+        <span class="c1"># avoid 1d shape</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_channels</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Wave</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">start</span><span class="p">,</span><span class="n">tmp</span><span class="p">,</span><span class="n">end</span><span class="p">)),</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Wave.plot"><a class="viewcode-back" href="../../../data.html#untwist.data.Wave.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the waveofrm using matplotlib.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">time_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_frames</span><span class="p">)</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_channels</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time_values</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_channels</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_channels</span><span class="p">):</span>        
+                <span class="n">axes</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time_values</span><span class="p">,</span> <span class="bp">self</span><span class="p">[:,</span><span class="n">ch</span><span class="p">])</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;time (s)&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">f</span></div>
+
+<div class="viewcode-block" id="Wave.play"><a class="viewcode-back" href="../../../data.html#untwist.data.Wave.play">[docs]</a>    <span class="k">def</span> <span class="nf">play</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stop_func</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Play the sound with the current audio driver.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        stop_func: function</span>
+<span class="sd">            Function to execute when the sound ends.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stream</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">stream</span> <span class="o">=</span> <span class="n">audio_driver</span><span class="o">.</span><span class="n">play</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span> <span class="n">sr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span><span class="p">,</span> <span class="n">stop_func</span> <span class="o">=</span> <span class="n">stop_func</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Wave.stop"><a class="viewcode-back" href="../../../data.html#untwist.data.Wave.stop">[docs]</a>    <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Stop playback if playing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">audio_driver</span><span class="o">.</span><span class="n">stop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stream</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stream</span> <span class="o">=</span> <span class="bp">None</span></div>
+        
+    <span class="nd">@classmethod</span> 
+<div class="viewcode-block" id="Wave.record"><a class="viewcode-back" href="../../../data.html#untwist.data.Wave.record">[docs]</a>    <span class="k">def</span> <span class="nf">record</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">max_seconds</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">num_channels</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">sr</span> <span class="o">=</span> <span class="mi">44100</span><span class="p">,</span>
+        <span class="n">stop_func</span><span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">audio_driver</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">max_seconds</span><span class="p">,</span> <span class="n">num_channels</span><span class="p">,</span> <span class="n">sr</span><span class="p">,</span> <span class="n">stop_func</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">duration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span></div>
+
+    
+
+<div class="viewcode-block" id="Spectrum"><a class="viewcode-back" href="../../../data.html#untwist.data.Spectrum">[docs]</a><span class="k">class</span> <span class="nc">Spectrum</span><span class="p">(</span><span class="n">Signal</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Audio spectrum complex signal.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+        
+    <span class="k">def</span> <span class="nf">__array_finalize__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span> <span class="k">return</span>        
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;sample_rate&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window_size</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;window_size&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hop_size</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;hop_size&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1">#pickle additional attributes</span>
+        <span class="n">pickled_state</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Spectrum</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__reduce__</span><span class="p">()</span>
+        <span class="n">new_state</span> <span class="o">=</span> <span class="n">pickled_state</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">window_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">pickled_state</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pickled_state</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">new_state</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__setstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hop_size</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window_size</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Spectrum</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__setstate__</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+    
+<div class="viewcode-block" id="Spectrum.magnitude"><a class="viewcode-back" href="../../../data.html#untwist.data.Spectrum.magnitude">[docs]</a>    <span class="k">def</span> <span class="nf">magnitude</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the magnitude spectrum.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> </div>
+
+<div class="viewcode-block" id="Spectrum.phase"><a class="viewcode-back" href="../../../data.html#untwist.data.Spectrum.phase">[docs]</a>    <span class="k">def</span> <span class="nf">phase</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the phase spectrum.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="Spectrum.plot"><a class="viewcode-back" href="../../../data.html#untwist.data.Spectrum.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot magnitude and phase.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">f</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">magnitude</span><span class="p">())</span>
+        <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">phase</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">f</span></div></div>
+       
+        
+        
+<div class="viewcode-block" id="Spectrogram"><a class="viewcode-back" href="../../../data.html#untwist.data.Spectrogram">[docs]</a><span class="k">class</span> <span class="nc">Spectrogram</span><span class="p">(</span><span class="n">Spectrum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Complex audio spectrogram matrix.</span>
+<span class="sd">    Rows are frequency bins (0th is the lowest frequency), columns are time bins.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    samples: complex</span>
+<span class="sd">        Spectrogram data.</span>
+<span class="sd">    sample_rate: int</span>
+<span class="sd">        Sample rate in samples / second of the original time domain signal.</span>
+<span class="sd">    window_size: int</span>
+<span class="sd">        Window size of the time-frequency transform used to obtain the spectrogram.</span>
+<span class="sd">    hop_size: int</span>
+<span class="sd">        Hop size of the time-frequency transform used to obtain the spectrogram.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">sample_rate</span> <span class="o">=</span> <span class="mi">44100</span><span class="p">,</span> <span class="n">window_size</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span> <span class="n">hop_size</span> <span class="o">=</span> <span class="mi">512</span><span class="p">):</span>
+        <span class="n">instance</span> <span class="o">=</span> <span class="n">Signal</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">)</span>             
+        <span class="n">instance</span><span class="o">.</span><span class="n">window_size</span> <span class="o">=</span> <span class="n">window_size</span>
+        <span class="n">instance</span><span class="o">.</span><span class="n">hop_size</span> <span class="o">=</span> <span class="n">hop_size</span>
+        <span class="k">return</span> <span class="n">instance</span>
+    
+    <span class="k">def</span> <span class="nf">__array_finalize__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span> <span class="k">return</span>        
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;sample_rate&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window_size</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;window_size&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hop_size</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;hop_size&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+   
+    <span class="nd">@property</span>  
+    <span class="k">def</span> <span class="nf">num_channels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">num_frames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Number of spectral frames.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            
+<div class="viewcode-block" id="Spectrogram.plot"><a class="viewcode-back" href="../../../data.html#untwist.data.Spectrogram.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">magnitude_plot</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span> <span class="p">)</span></div>
+        
+<div class="viewcode-block" id="Spectrogram.magnitude_plot"><a class="viewcode-back" href="../../../data.html#untwist.data.Spectrogram.magnitude_plot">[docs]</a>    <span class="k">def</span> <span class="nf">magnitude_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">colormap</span> <span class="o">=</span> <span class="s2">&quot;CMRmap&quot;</span><span class="p">,</span> <span class="n">min_freq</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">max_freq</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> 
+        <span class="n">axes</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">label_x</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">label_y</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">title</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> 
+        <span class="n">colorbar</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">log_mag</span> <span class="o">=</span> <span class="bp">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the magnitude spectrogram</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        colormap: string</span>
+<span class="sd">            Matplotlib colormap.</span>
+<span class="sd">        min_freq: float</span>
+<span class="sd">            minimum frequency in Hz (for labelling the axis).</span>
+<span class="sd">        max_freq: float</span>
+<span class="sd">            maximum frequency in Hz (for labelling the axis).</span>
+<span class="sd">        axes: matplotlib axes object</span>
+<span class="sd">            Axes object for plotting on existing figure.</span>
+<span class="sd">        label_x: boolean</span>
+<span class="sd">            Add labels to x axis.</span>
+<span class="sd">        label_y: boolean</span>
+<span class="sd">            Add labels to y axis.</span>
+<span class="sd">        title: string</span>
+<span class="sd">            Plot title (overlaid on image).</span>
+<span class="sd">        colorbar: boolean</span>
+<span class="sd">            Add a colorbar.</span>
+<span class="sd">        log_mag: boolean</span>
+<span class="sd">            Plot log magnitude.            </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">magnitude</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">log_mag</span><span class="p">:</span> 
+            <span class="n">mag</span> <span class="o">=</span> <span class="mf">20.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">((</span><span class="n">mag</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">mag</span><span class="p">))</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">spacing</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">min_val</span> <span class="o">=</span> <span class="o">-</span><span class="mi">60</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">min_val</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">max_freq</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span> <span class="n">max_freq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">/</span> <span class="mf">2.0</span>
+        <span class="n">hop_secs</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hop_size</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span>
+        <span class="n">time_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_frames</span><span class="p">)</span> <span class="o">*</span> <span class="n">hop_secs</span>
+        <span class="n">bin_hz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">freq_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">bin_hz</span>
+        <span class="k">if</span> <span class="n">axes</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">mag</span><span class="p">,</span> 
+            <span class="n">cmap</span> <span class="o">=</span> <span class="n">colormap</span><span class="p">,</span>  
+            <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> 
+            <span class="n">vmin</span> <span class="o">=</span> <span class="n">min_val</span><span class="p">,</span>
+            <span class="n">origin</span> <span class="o">=</span><span class="s2">&quot;low&quot;</span><span class="p">,</span>
+            <span class="n">extent</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">time_values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">min_freq</span><span class="p">,</span> <span class="n">max_freq</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">colorbar</span><span class="p">:</span><span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">axes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">label_x</span><span class="p">:</span> <span class="n">axes</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;time (s)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">label_y</span><span class="p">:</span> <span class="n">axes</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;freq (hz)&quot;</span><span class="p">)</span>        
+        <span class="n">plt</span><span class="o">.</span><span class="n">setp</span><span class="p">(</span><span class="n">axes</span><span class="o">.</span><span class="n">get_xticklabels</span><span class="p">(),</span> <span class="n">visible</span> <span class="o">=</span> <span class="n">label_x</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">setp</span><span class="p">(</span><span class="n">axes</span><span class="o">.</span><span class="n">get_yticklabels</span><span class="p">(),</span> <span class="n">visible</span> <span class="o">=</span> <span class="n">label_y</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">title</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">axes</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">horizontalalignment</span> <span class="o">=</span> <span class="s1">&#39;right&#39;</span><span class="p">,</span>
+                <span class="n">bbox</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;facecolor&#39;</span><span class="p">:</span><span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="s1">&#39;alpha&#39;</span><span class="p">:</span><span class="mf">0.7</span><span class="p">,</span> <span class="s1">&#39;pad&#39;</span><span class="p">:</span><span class="mi">5</span><span class="p">},</span> 
+                <span class="n">transform</span><span class="o">=</span><span class="n">axes</span><span class="o">.</span><span class="n">transAxes</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">axes</span></div></div>
+
+<span class="k">class</span> <span class="nc">TFMask</span><span class="p">(</span><span class="n">Spectrogram</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base time-frequency mask for multiplying with spectrograms.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask_color</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span> <span class="n">min_freq</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">max_freq</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> 
+        <span class="n">axes</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">label_x</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">label_y</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">title</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the time-frequency mask. </span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mask_color: tuple</span>
+<span class="sd">            Color specification (including alpha) for the mask</span>
+<span class="sd">        min_freq: float</span>
+<span class="sd">            minimum frequency in Hz (for labelling the axis).</span>
+<span class="sd">        max_freq: float</span>
+<span class="sd">            maximum frequency in Hz (for labelling the axis).</span>
+<span class="sd">        axes: matplotlib axes object</span>
+<span class="sd">            Axes object for plotting on existing figure. </span>
+<span class="sd">            If provided, the mask is assumed to be overlaif on a spectrogram.</span>
+<span class="sd">        label_x: boolean</span>
+<span class="sd">            Add labels to x axis.</span>
+<span class="sd">        label_y: boolean</span>
+<span class="sd">            Add labels to y axis.</span>
+<span class="sd">        title: string</span>
+<span class="sd">            Plot title (overlaid on image).</span>
+<span class="sd">        &quot;&quot;&quot;</span>                                        
+        <span class="k">if</span> <span class="n">axes</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span> 
+            <span class="n">colormap</span> <span class="o">=</span>  <span class="n">LinearSegmentedColormap</span><span class="o">.</span><span class="n">from_list</span><span class="p">(</span><span class="s2">&quot;map&quot;</span><span class="p">,[</span><span class="s2">&quot;white&quot;</span><span class="p">,</span><span class="s2">&quot;black&quot;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">alpha_color</span> <span class="o">=</span> <span class="p">[</span><span class="n">mask_color</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">mask_color</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">mask_color</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">colormap</span> <span class="o">=</span> <span class="n">LinearSegmentedColormap</span><span class="o">.</span><span class="n">from_list</span><span class="p">(</span><span class="s2">&quot;map&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">alpha_color</span><span class="p">,</span> <span class="n">mask_color</span><span class="p">])</span>
+        <span class="n">Spectrogram</span><span class="o">.</span><span class="n">magnitude_plot</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">colormap</span><span class="p">,</span> <span class="n">min_freq</span><span class="p">,</span> <span class="n">max_freq</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">label_x</span><span class="p">,</span> <span class="n">label_y</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> 
+            <span class="bp">False</span><span class="p">,</span> <span class="bp">False</span>
+            <span class="p">)</span>
+        
+<div class="viewcode-block" id="BinaryMask"><a class="viewcode-back" href="../../../data.html#untwist.data.BinaryMask">[docs]</a><span class="k">class</span> <span class="nc">BinaryMask</span><span class="p">(</span><span class="n">TFMask</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Binary Mask based on a comparison between target and background.</span>
+<span class="sd">    If the threshold is 0, the mask is 1 when the target magnitude is larger </span>
+<span class="sd">    than the background, and 0 otherwise.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">background</span><span class="p">,</span> <span class="n">threshold</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="n">tm</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">magnitude</span><span class="p">()</span> <span class="o">+</span> <span class="n">eps</span>
+        <span class="n">bm</span> <span class="o">=</span> <span class="n">background</span><span class="o">.</span><span class="n">magnitude</span><span class="p">()</span> <span class="o">+</span> <span class="n">eps</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="mi">20</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">tm</span> <span class="o">/</span> <span class="n">bm</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">_types</span><span class="o">.</span><span class="n">float_</span><span class="p">)</span>
+        <span class="n">instance</span> <span class="o">=</span> <span class="n">TFMask</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+        <span class="n">instance</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">sample_rate</span>
+        <span class="n">instance</span><span class="o">.</span><span class="n">window_size</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">window_size</span>
+        <span class="n">instance</span><span class="o">.</span><span class="n">hop_size</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">hop_size</span>
+        <span class="k">return</span> <span class="n">instance</span></div>
+    
+<div class="viewcode-block" id="RatioMask"><a class="viewcode-back" href="../../../data.html#untwist.data.RatioMask">[docs]</a><span class="k">class</span> <span class="nc">RatioMask</span><span class="p">(</span><span class="n">TFMask</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Ratio Mask: soft mask based on ratio of target to background magnitude, </span>
+<span class="sd">    with optional exponent p.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">background</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">tm</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">magnitude</span><span class="p">()</span> <span class="o">+</span> <span class="n">eps</span>
+        <span class="n">bm</span> <span class="o">=</span> <span class="n">background</span><span class="o">.</span><span class="n">magnitude</span><span class="p">()</span> <span class="o">+</span> <span class="n">eps</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">tm</span><span class="o">**</span><span class="n">p</span> <span class="o">/</span> <span class="p">(</span><span class="n">tm</span> <span class="o">+</span> <span class="n">bm</span><span class="p">)</span><span class="o">**</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">_types</span><span class="o">.</span><span class="n">float_</span><span class="p">)</span>
+        <span class="n">instance</span> <span class="o">=</span> <span class="n">TFMask</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+        <span class="n">instance</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">sample_rate</span>
+        <span class="n">instance</span><span class="o">.</span><span class="n">window_size</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">window_size</span>
+        <span class="n">instance</span><span class="o">.</span><span class="n">hop_size</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">hop_size</span>
+        <span class="k">return</span> <span class="n">instance</span>        </div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">untwist 0.1 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, University of Surey.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.2.
+    </div>
+  </body>
+</html>

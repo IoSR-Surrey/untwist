@@ -1,0 +1,232 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>untwist.neuralnetworks.sgd &mdash; untwist 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="untwist 0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">untwist 0.1 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for untwist.neuralnetworks.sgd</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">theano</span>
+<span class="kn">import</span> <span class="nn">theano.tensor</span> <span class="kn">as</span> <span class="nn">T</span>
+<span class="n">floatX</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">floatX</span>
+
+<div class="viewcode-block" id="SGD"><a class="viewcode-back" href="../../../neuralnetworks.html#untwist.neuralnetworks.SGD">[docs]</a><span class="k">class</span> <span class="nc">SGD</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Stochastic gradient descent algorithm for training MLP instances</span>
+<span class="sd">    Includes momentum, learning rate scheduling, early stopping.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mlp</span><span class="p">,</span> <span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> 
+        <span class="n">momentum</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">iterations</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="n">patience</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">rate_decay_th</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span> <span class="o">=</span> <span class="n">mlp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="n">learning_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">momentum</span> <span class="o">=</span> <span class="n">momentum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">=</span> <span class="n">iterations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patience</span> <span class="o">=</span> <span class="n">patience</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">do_validation</span> <span class="o">=</span> <span class="n">patience</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rate_decay_th</span> <span class="o">=</span> <span class="n">rate_decay_th</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">l_r</span> <span class="o">=</span> <span class="n">l_r</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;l_r&#39;</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">floatX</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">learning_rate_decay</span> <span class="o">=</span> <span class="mi">1</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">training_error</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">cost</span> <span class="o">=</span> <span class="n">mlp</span><span class="o">.</span><span class="n">cost</span> <span class="o">/</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gparams</span> <span class="o">=</span> <span class="p">[</span><span class="n">T</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">mlp</span><span class="o">.</span><span class="n">params</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_updates</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">theano</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span><span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="n">param</span><span class="o">.</span><span class="n">get_value</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> 
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">floatX</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">mlp</span><span class="o">.</span><span class="n">params</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">updates</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">param</span><span class="p">,</span> <span class="n">gparam</span><span class="p">,</span> <span class="n">uparam</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">mlp</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">gparams</span><span class="p">,</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_updates</span><span class="p">):</span>
+                
+            <span class="bp">self</span><span class="o">.</span><span class="n">updates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">param</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">l_r</span> <span class="o">*</span> <span class="n">uparam</span><span class="p">)</span>
+            <span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">updates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">uparam</span><span class="p">,</span> <span class="p">(</span><span class="n">momentum</span> <span class="o">*</span> <span class="n">uparam</span><span class="p">)</span> <span class="o">+</span> <span class="p">((</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">momentum</span><span class="p">)</span> <span class="o">*</span> <span class="n">gparam</span><span class="p">))</span>
+            <span class="p">)</span>
+        <span class="n">n_bins</span> <span class="o">=</span> <span class="n">mlp</span><span class="o">.</span><span class="n">hidden_layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">W</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">eval</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">xi</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span> 
+            <span class="n">name</span>  <span class="o">=</span> <span class="s1">&#39;xi&#39;</span><span class="p">,</span>  
+            <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span><span class="n">n_bins</span><span class="p">),</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">floatX</span><span class="p">),</span>
+            <span class="n">allow_downcast</span> <span class="o">=</span> <span class="bp">True</span><span class="p">)</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">yi</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span>
+            <span class="n">name</span>  <span class="o">=</span> <span class="s1">&#39;yi&#39;</span><span class="p">,</span> 
+            <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span><span class="n">n_bins</span><span class="p">),</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">floatX</span><span class="p">),</span>
+            <span class="n">allow_downcast</span> <span class="o">=</span> <span class="bp">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">train_func</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">function</span><span class="p">(</span>
+            <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">l_r</span><span class="p">],</span>
+            <span class="n">outputs</span> <span class="o">=</span> <span class="n">cost</span><span class="p">,</span>
+            <span class="n">updates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">updates</span><span class="p">,</span>
+            <span class="n">allow_input_downcast</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span>
+            <span class="n">givens</span> <span class="o">=</span> <span class="p">{</span><span class="n">mlp</span><span class="o">.</span><span class="n">input</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">xi</span><span class="p">,</span> <span class="n">mlp</span><span class="o">.</span><span class="n">target</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">yi</span><span class="p">}</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">validation_func</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">function</span><span class="p">(</span>
+            <span class="n">inputs</span> <span class="o">=</span> <span class="p">[],</span>
+            <span class="n">outputs</span> <span class="o">=</span> <span class="n">cost</span><span class="p">,</span>            
+            <span class="n">allow_input_downcast</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span>
+            <span class="n">givens</span> <span class="o">=</span> <span class="p">{</span><span class="n">mlp</span><span class="o">.</span><span class="n">input</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">xi</span><span class="p">,</span> <span class="n">mlp</span><span class="o">.</span><span class="n">target</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">yi</span><span class="p">}</span>
+        <span class="p">)</span>        
+        <span class="bp">self</span><span class="o">.</span><span class="n">predict_func</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">function</span><span class="p">(</span>
+            <span class="n">inputs</span> <span class="o">=</span> <span class="p">[],</span>
+            <span class="n">outputs</span> <span class="o">=</span> <span class="n">mlp</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
+            <span class="n">givens</span> <span class="o">=</span> <span class="p">{</span><span class="n">mlp</span><span class="o">.</span><span class="n">input</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">xi</span><span class="p">},</span>
+            <span class="n">allow_input_downcast</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="SGD.train"><a class="viewcode-back" href="../../../neuralnetworks.html#untwist.neuralnetworks.SGD.train">[docs]</a>    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Train the MLP passed to the constructor using a Dataset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">n_batches</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span>
+        <span class="n">patience</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patience</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_validation</span><span class="p">:</span>
+            <span class="n">val_batches</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_batches</span> <span class="o">/</span> <span class="mi">5</span><span class="p">)</span> <span class="c1"># 20% validation            </span>
+            <span class="n">n_batches</span> <span class="o">=</span> <span class="n">n_batches</span> <span class="o">-</span> <span class="n">val_batches</span>                        
+            <span class="n">best_val_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="n">prev_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+
+        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iterations</span><span class="p">):</span>
+            <span class="n">train_err</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">n_batches</span><span class="p">):</span>
+                <span class="n">batch</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_batch</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)</span>      
+                <span class="bp">self</span><span class="o">.</span><span class="n">xi</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">floatX</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">yi</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">floatX</span><span class="p">))</span>
+                <span class="n">train_err</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_func</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_validation</span><span class="p">:</span>
+                <span class="n">val_err</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">val_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_batches</span><span class="p">,</span> <span class="n">n_batches</span> <span class="o">+</span> <span class="n">val_batches</span><span class="p">):</span>
+                    <span class="n">val_batch</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_batch</span><span class="p">(</span><span class="n">val_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)</span>                               
+                    <span class="bp">self</span><span class="o">.</span><span class="n">xi</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">val_batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">yi</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">val_batch</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">floatX</span><span class="p">))</span>
+                    <span class="n">val_err</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">validation_func</span><span class="p">()</span>
+                <span class="n">val_err</span> <span class="o">=</span> <span class="n">val_err</span> <span class="o">/</span> <span class="n">n_batches</span>
+                <span class="k">print</span> <span class="s2">&quot;val_err&quot;</span><span class="p">,</span> <span class="n">val_err</span> <span class="p">,</span> <span class="s2">&quot;best &quot;</span><span class="p">,</span> <span class="n">best_val_err</span>
+                <span class="k">if</span> <span class="n">val_err</span> <span class="o">&lt;</span> <span class="n">best_val_err</span><span class="p">:</span>
+                    <span class="n">best_params</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mlp</span><span class="o">.</span><span class="n">params</span><span class="p">)</span> 
+                    <span class="n">best_val_err</span> <span class="o">=</span> <span class="n">val_err</span>
+                    <span class="n">patience</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patience</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">patience</span> <span class="o">-=</span> <span class="mi">1</span>
+
+            <span class="n">err</span> <span class="o">=</span> <span class="n">train_err</span> <span class="o">/</span> <span class="n">n_batches</span>
+            <span class="k">print</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">err</span>
+                    
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_validation</span> <span class="ow">and</span> <span class="n">patience</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">print</span> <span class="s2">&quot;patience over, returning&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">best_params</span>
+                <span class="k">print</span> <span class="s2">&quot;final validation error &quot;</span><span class="p">,</span> <span class="n">best_val_err</span>
+                <span class="k">return</span>
+            <span class="k">print</span> <span class="n">err</span> <span class="o">-</span> <span class="n">prev_err</span>
+            <span class="k">if</span> <span class="n">prev_err</span> <span class="o">-</span> <span class="n">err</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">rate_decay_th</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">learning_rate_decay</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">print</span> <span class="s2">&quot;starting learning rate decay&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">learning_rate_decay</span> <span class="o">=</span> <span class="mf">0.9</span>            
+            <span class="bp">self</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">learning_rate_decay</span>
+            <span class="n">prev_err</span> <span class="o">=</span> <span class="n">err</span></div>
+                    
+
+<div class="viewcode-block" id="SGD.predict"><a class="viewcode-back" href="../../../neuralnetworks.html#untwist.neuralnetworks.SGD.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get mlp prediction from observation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xi</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_func</span><span class="p">()</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">untwist 0.1 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, University of Surey.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.2.
+    </div>
+  </body>
+</html>

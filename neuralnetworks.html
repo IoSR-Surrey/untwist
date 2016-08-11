@@ -1,0 +1,173 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Neural networks &mdash; untwist 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="untwist 0.1 documentation" href="index.html" />
+    <link rel="next" title="Analysis" href="analysis.html" />
+    <link rel="prev" title="HPSS" href="hpss.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="analysis.html" title="Analysis"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="hpss.html" title="HPSS"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">untwist 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-untwist.neuralnetworks">
+<span id="neural-networks"></span><span id="neuralnetworks"></span><h1>Neural networks<a class="headerlink" href="#module-untwist.neuralnetworks" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="untwist.neuralnetworks.Layer">
+<em class="property">class </em><code class="descclassname">untwist.neuralnetworks.</code><code class="descname">Layer</code><span class="sig-paren">(</span><em>input</em>, <em>n_in</em>, <em>n_out</em>, <em>W=None</em>, <em>b=None</em>, <em>activation=&lt;theano.tensor.elemwise.Elemwise object&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/neuralnetworks/mlp.html#Layer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.neuralnetworks.Layer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generic feed-forward layer (can be hidden or output)</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="untwist.neuralnetworks.Activations">
+<em class="property">class </em><code class="descclassname">untwist.neuralnetworks.</code><code class="descname">Activations</code><a class="reference internal" href="_modules/untwist/neuralnetworks/mlp.html#Activations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.neuralnetworks.Activations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Some activation functions not available in theano.</p>
+<dl class="classmethod">
+<dt id="untwist.neuralnetworks.Activations.ReLU">
+<em class="property">classmethod </em><code class="descname">ReLU</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/neuralnetworks/mlp.html#Activations.ReLU"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.neuralnetworks.Activations.ReLU" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="untwist.neuralnetworks.Activations.ReLU2">
+<em class="property">classmethod </em><code class="descname">ReLU2</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/neuralnetworks/mlp.html#Activations.ReLU2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.neuralnetworks.Activations.ReLU2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="untwist.neuralnetworks.MLP">
+<em class="property">class </em><code class="descclassname">untwist.neuralnetworks.</code><code class="descname">MLP</code><span class="sig-paren">(</span><em>input_size</em>, <em>output_size</em>, <em>hidden_sizes</em>, <em>activation=&lt;theano.tensor.elemwise.Elemwise object&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/neuralnetworks/mlp.html#MLP"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.neuralnetworks.MLP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multi-Layer Perceptron network, specified by the size of the input, 
+the output and an arbitrary number of hidden layers.</p>
+<dl class="method">
+<dt id="untwist.neuralnetworks.MLP.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>fname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/neuralnetworks/mlp.html#MLP.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.neuralnetworks.MLP.load" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.neuralnetworks.MLP.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>fname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/neuralnetworks/mlp.html#MLP.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.neuralnetworks.MLP.save" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="untwist.neuralnetworks.SGD">
+<em class="property">class </em><code class="descclassname">untwist.neuralnetworks.</code><code class="descname">SGD</code><span class="sig-paren">(</span><em>mlp</em>, <em>learning_rate=0.1</em>, <em>momentum=0.5</em>, <em>batch_size=100</em>, <em>iterations=100</em>, <em>patience=0</em>, <em>rate_decay_th=0.1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/neuralnetworks/sgd.html#SGD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.neuralnetworks.SGD" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stochastic gradient descent algorithm for training MLP instances
+Includes momentum, learning rate scheduling, early stopping.</p>
+<dl class="method">
+<dt id="untwist.neuralnetworks.SGD.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/neuralnetworks/sgd.html#SGD.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.neuralnetworks.SGD.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get mlp prediction from observation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="untwist.neuralnetworks.SGD.train">
+<code class="descname">train</code><span class="sig-paren">(</span><em>dataset</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/neuralnetworks/sgd.html#SGD.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.neuralnetworks.SGD.train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Train the MLP passed to the constructor using a Dataset.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="hpss.html"
+                        title="previous chapter">HPSS</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="analysis.html"
+                        title="next chapter">Analysis</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/neuralnetworks.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="analysis.html" title="Analysis"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="hpss.html" title="HPSS"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">untwist 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, University of Surey.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.2.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Transforms &mdash; untwist 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="untwist 0.1 documentation" href="index.html" />
+    <link rel="next" title="Factorizations" href="factorizations.html" />
+    <link rel="prev" title="Soundcard" href="soundcard.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="factorizations.html" title="Factorizations"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="soundcard.html" title="Soundcard"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">untwist 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="transforms">
+<span id="id1"></span><h1>Transforms<a class="headerlink" href="#transforms" title="Permalink to this headline">¶</a></h1>
+<span class="target" id="module-untwist.transforms"></span><dl class="class">
+<dt id="untwist.transforms.STFT">
+<em class="property">class </em><code class="descclassname">untwist.transforms.</code><code class="descname">STFT</code><span class="sig-paren">(</span><em>window=None</em>, <em>fft_size=1024</em>, <em>hop_size=512</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/transforms/stft.html#STFT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.transforms.STFT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Short-Time Fourier Transform
+Input should be a mono Wave, output is a complex spectrogram</p>
+<dl class="method">
+<dt id="untwist.transforms.STFT.process">
+<code class="descname">process</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#untwist.transforms.STFT.process" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="untwist.transforms.ISTFT">
+<em class="property">class </em><code class="descclassname">untwist.transforms.</code><code class="descname">ISTFT</code><span class="sig-paren">(</span><em>window=None</em>, <em>fft_size=1024</em>, <em>hop_size=512</em>, <em>sample_rate=44100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/transforms/stft.html#ISTFT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.transforms.ISTFT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inverse Short-Time Fourier Transform
+Input should be a complex spectrogram, output is mono Wave</p>
+<dl class="method">
+<dt id="untwist.transforms.ISTFT.process">
+<code class="descname">process</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#untwist.transforms.ISTFT.process" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="untwist.transforms.QERBT">
+<em class="property">class </em><code class="descclassname">untwist.transforms.</code><code class="descname">QERBT</code><span class="sig-paren">(</span><em>n_bins=350</em>, <em>w_len=2048</em>, <em>sr=44100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/transforms/qerbt.html#QERBT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.transforms.QERBT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Quadratic ERB transform processor, with independent window length 
+and number of bins. Returns a Spectrogram.</p>
+<dl class="method">
+<dt id="untwist.transforms.QERBT.make_filterbank">
+<code class="descname">make_filterbank</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/transforms/qerbt.html#QERBT.make_filterbank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.transforms.QERBT.make_filterbank" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.transforms.QERBT.make_signal_window">
+<code class="descname">make_signal_window</code><span class="sig-paren">(</span><em>n_frames</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/transforms/qerbt.html#QERBT.make_signal_window"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.transforms.QERBT.make_signal_window" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.transforms.QERBT.process">
+<code class="descname">process</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#untwist.transforms.QERBT.process" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="untwist.transforms.QERBFilter">
+<em class="property">class </em><code class="descclassname">untwist.transforms.</code><code class="descname">QERBFilter</code><span class="sig-paren">(</span><em>n_bins=350</em>, <em>w_len=2048</em>, <em>sr=44100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/transforms/qerbt.html#QERBFilter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.transforms.QERBFilter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Filterbank based on the QERBT transform.</p>
+<dl class="method">
+<dt id="untwist.transforms.QERBFilter.make_bin_weights">
+<code class="descname">make_bin_weights</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/transforms/qerbt.html#QERBFilter.make_bin_weights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.transforms.QERBFilter.make_bin_weights" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="untwist.transforms.QERBFilter.process">
+<code class="descname">process</code><span class="sig-paren">(</span><em>wave</em>, <em>W</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/untwist/transforms/qerbt.html#QERBFilter.process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.transforms.QERBFilter.process" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="soundcard.html"
+                        title="previous chapter">Soundcard</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="factorizations.html"
+                        title="next chapter">Factorizations</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/transforms.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="factorizations.html" title="Factorizations"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="soundcard.html" title="Soundcard"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">untwist 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, University of Surey.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.2.
+    </div>
+  </body>
+</html>

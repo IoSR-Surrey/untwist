@@ -1,0 +1,241 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>untwist.factorizations.nmf &mdash; untwist 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="untwist 0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">untwist 0.1 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for untwist.factorizations.nmf</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Non-negative Matrix Factorization algorithms.</span>
+<span class="sd">Many can be unified under a single framework based on multiplicative updates.</span>
+<span class="sd">Implementation is inspired by NMFlib by Graham Grindlay</span>
+<span class="sd">Currently implemented as processor for flexibility, so W and H are not kept in the object, the user is supposed to manage them.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">..base.algorithms</span> <span class="kn">import</span> <span class="n">Processor</span>
+<span class="kn">from</span> <span class="nn">..data</span> <span class="kn">import</span> <span class="n">audio</span>
+
+<span class="n">eps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">spacing</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<div class="viewcode-block" id="NMF"><a class="viewcode-back" href="../../../factorizations.html#untwist.factorizations.NMF">[docs]</a><span class="k">class</span> <span class="nc">NMF</span><span class="p">(</span><span class="n">Processor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    General NMF class, including euclidean, kl and beta-divergence </span>
+<span class="sd">    implementations. For supervised NMF, typically set update_W </span>
+<span class="sd">    to false in the constructor and provide a W0 to the process method</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+      
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">update_func</span> <span class="o">=</span> <span class="s2">&quot;kl&quot;</span><span class="p">,</span> <span class="n">iterations</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> 
+        <span class="n">threshold</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">W_norm</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">H_norm</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> 
+        <span class="n">update_W</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">update_H</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="n">return_divergence</span> <span class="o">=</span> <span class="bp">False</span><span class="p">,</span> <span class="n">beta</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">rank</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">update_func</span> <span class="o">+</span> <span class="s2">&quot;_updates&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">=</span> <span class="n">iterations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="n">threshold</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">W_norm</span> <span class="o">=</span> <span class="n">W_norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H_norm</span> <span class="o">=</span> <span class="n">H_norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_W</span> <span class="o">=</span> <span class="n">update_W</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_H</span> <span class="o">=</span> <span class="n">update_H</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compute_divergence</span> <span class="o">=</span> <span class="n">threshold</span> <span class="o">!=</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">return_divergence</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="n">beta</span>
+
+        
+<div class="viewcode-block" id="NMF.divergence"><a class="viewcode-back" href="../../../factorizations.html#untwist.factorizations.NMF.divergence">[docs]</a>    <span class="k">def</span> <span class="nf">divergence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute divergence between reconstruction and original</span>
+<span class="sd">        &quot;&quot;&quot;</span>    
+
+        <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">W</span><span class="p">,</span><span class="n">H</span><span class="p">),</span> <span class="n">eps</span><span class="p">)</span>
+        <span class="n">V</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">eps</span><span class="p">)</span>
+        <span class="n">err</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">update</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">kl_updates</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">V</span><span class="o">/</span><span class="n">R</span><span class="p">))</span> <span class="o">-</span> <span class="n">V</span> <span class="o">+</span> <span class="n">R</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">update</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">euc_updates</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">V</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">W</span><span class="p">,</span><span class="n">H</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">update</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_updates</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">V</span><span class="o">/</span><span class="n">R</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">V</span><span class="o">/</span><span class="n">R</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">update</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta_updates</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">V</span> <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">R</span> <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span>
+                  <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">*</span> <span class="n">V</span> <span class="o">*</span> <span class="n">R</span> <span class="o">**</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> 
+                  <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">err</span></div>
+
+
+        
+<div class="viewcode-block" id="NMF.normalize"><a class="viewcode-back" href="../../../factorizations.html#untwist.factorizations.NMF.normalize">[docs]</a>    <span class="k">def</span> <span class="nf">normalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Normalize marix (W or H)</span>
+<span class="sd">        &quot;&quot;&quot;</span>    
+        
+        <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">p</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">X</span><span class="p">),</span> <span class="n">axis</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span> <span class="k">return</span> <span class="n">X</span>
+        <span class="n">norm</span><span class="p">[</span><span class="n">norm</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="k">return</span> <span class="n">X</span> <span class="o">/</span> <span class="n">norm</span></div>
+
+<div class="viewcode-block" id="NMF.process"><a class="viewcode-back" href="../../../factorizations.html#untwist.factorizations.NMF.process">[docs]</a>    <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">W0</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">H0</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize and compute multiplicative updates iterations</span>
+<span class="sd">        &quot;&quot;&quot;</span>                
+
+        <span class="n">W</span> <span class="o">=</span> <span class="n">W0</span> <span class="k">if</span> <span class="n">W0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">V</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">H0</span> <span class="k">if</span> <span class="n">H0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">,</span> <span class="n">V</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="n">eps</span>
+        <span class="n">err</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ones</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">V</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W_norm</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_norm</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+         
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iterations</span><span class="p">):</span>
+            <span class="p">[</span><span class="n">V</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_divergence</span><span class="p">:</span>
+                <span class="n">err</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">divergence</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">))</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">err</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="p">[</span><span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">err</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">err</span><span class="p">]</span></div>
+
+
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Multiplicative updates functions</span>
+<span class="sd">    &quot;&quot;&quot;</span>    
+<div class="viewcode-block" id="NMF.euc_updates"><a class="viewcode-back" href="../../../factorizations.html#untwist.factorizations.NMF.euc_updates">[docs]</a>    <span class="k">def</span> <span class="nf">euc_updates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">):</span>        
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Optimize Euclidean distance</span>
+<span class="sd">        &quot;&quot;&quot;</span>    
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_W</span><span class="p">:</span>            
+            <span class="n">W</span>  <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">H</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">H</span><span class="o">.</span><span class="n">T</span><span class="p">))</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>
+            <span class="n">W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W_norm</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_H</span><span class="p">:</span>            
+            <span class="n">H</span>  <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">V</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">W</span><span class="p">),</span> <span class="n">H</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>
+            <span class="n">H</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_norm</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            
+        <span class="k">return</span> <span class="p">[</span><span class="n">V</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">]</span></div>
+
+         
+<div class="viewcode-block" id="NMF.kl_updates"><a class="viewcode-back" href="../../../factorizations.html#untwist.factorizations.NMF.kl_updates">[docs]</a>    <span class="k">def</span> <span class="nf">kl_updates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Optimize Kullback-Leibler divergence</span>
+<span class="sd">        &quot;&quot;&quot;</span>    
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_W</span><span class="p">:</span>
+            <span class="n">W</span>  <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">V</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span> <span class="p">,</span> <span class="n">H</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ones</span><span class="p">,</span> <span class="n">H</span><span class="o">.</span><span class="n">T</span><span class="p">),</span> <span class="n">eps</span><span class="p">)</span>            
+            <span class="n">W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W_norm</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_H</span><span class="p">:</span>             
+            <span class="n">H</span>  <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">V</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="n">H</span> <span class="p">)</span> <span class="o">+</span> <span class="n">eps</span><span class="p">))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ones</span><span class="p">),</span> <span class="n">eps</span><span class="p">)</span>
+            <span class="n">H</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_norm</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">V</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="NMF.beta_updates"><a class="viewcode-back" href="../../../factorizations.html#untwist.factorizations.NMF.beta_updates">[docs]</a>    <span class="k">def</span> <span class="nf">beta_updates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">):</span>        
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Optimize B-divergence</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_W</span><span class="p">:</span>
+            <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">W</span><span class="p">,</span><span class="n">H</span><span class="p">),</span> <span class="n">eps</span><span class="p">)</span>            
+            <span class="n">W</span> <span class="o">*=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">R</span> <span class="o">**</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">V</span><span class="p">,</span> <span class="n">H</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>  <span class="o">/</span> 
+                <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">R</span> <span class="o">**</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">H</span><span class="o">.</span><span class="n">T</span><span class="p">),</span> <span class="n">eps</span><span class="p">))</span>
+            <span class="n">W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W_norm</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_H</span><span class="p">:</span>
+            <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">W</span><span class="p">,</span><span class="n">H</span><span class="p">),</span> <span class="n">eps</span><span class="p">)</span>                        
+            <span class="n">H</span> <span class="o">*=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">R</span> <span class="o">**</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">V</span><span class="p">)</span> <span class="o">/</span> 
+                <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">R</span> <span class="o">**</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">eps</span><span class="p">))</span>
+            <span class="n">H</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">H_norm</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">V</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="NMF.is_updates"><a class="viewcode-back" href="../../../factorizations.html#untwist.factorizations.NMF.is_updates">[docs]</a>    <span class="k">def</span> <span class="nf">is_updates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Optimize Itakura-Saito divergence (using B-divergence)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta_updates</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">untwist 0.1 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, University of Surey.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.2.
+    </div>
+  </body>
+</html>

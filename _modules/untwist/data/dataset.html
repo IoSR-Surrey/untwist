@@ -1,0 +1,312 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>untwist.data.dataset &mdash; untwist 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="untwist 0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">untwist 0.1 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for untwist.data.dataset</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Dataset management utiliies.</span>
+<span class="sd">A Dataset is assumed to consist of two main objects: a matrix X of training examples and (optionally) a matrix Y of ground truth labels. In both cases, rows are observations and columns are features. </span>
+<span class="sd">For audio source separation in time-frequency, the columns of X will typically be frequency bins. The matrix Y can be a hard or soft mask, or for other tasks it may be just a class label.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">..base</span> <span class="kn">import</span> <span class="n">types</span>
+<span class="kn">from</span> <span class="nn">..base.exceptions</span> <span class="kn">import</span> <span class="o">*</span>
+
+
+<span class="k">class</span> <span class="nc">DatasetBase</span><span class="p">:</span>
+    <span class="n">_metaclass__</span> <span class="o">=</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span>
+    
+    <span class="nd">@abc.abstractmethod</span>
+    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))):</span>
+         <span class="k">return</span> <span class="bp">NotImplemented</span>
+         
+    <span class="nd">@abc.abstractmethod</span>
+    <span class="k">def</span> <span class="nf">get_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">NotImplemented</span>
+        
+    <span class="nd">@abc.abstractmethod</span>
+    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basename</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="nd">@abc.abstractmethod</span>        
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basename</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="c1"># inspired by librosa, but here data points are rows</span>
+    <span class="k">def</span> <span class="nf">shingle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">steps</span><span class="p">,</span> <span class="n">delay</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>        
+        <span class="n">n_points</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="p">[(</span><span class="nb">int</span><span class="p">(</span><span class="n">steps</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">delay</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)],</span> 
+            <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;constant&quot;</span><span class="p">,</span> <span class="n">constant_values</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">Xs</span> <span class="o">=</span> <span class="n">X</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">steps</span><span class="p">):</span>
+            <span class="n">Xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">Xs</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="o">-</span><span class="n">i</span> <span class="o">*</span> <span class="n">delay</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)])</span>
+        <span class="k">return</span> <span class="n">Xs</span>
+
+    <span class="c1"># average repeated positions, ignore absolute 0</span>
+    <span class="k">def</span> <span class="nf">unshingle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">steps</span><span class="p">,</span> <span class="n">delay</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">n_features</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">steps</span>
+        <span class="n">Xu</span> <span class="o">=</span> <span class="n">X</span><span class="p">[:,:</span><span class="n">n_features</span><span class="p">]</span>        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">steps</span><span class="p">):</span>
+            <span class="n">Xtmp</span> <span class="o">=</span> <span class="n">X</span><span class="p">[:,</span><span class="n">i</span><span class="o">*</span><span class="n">n_features</span><span class="p">:(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">n_features</span><span class="p">]</span>
+            <span class="n">Xu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dstack</span><span class="p">([</span><span class="n">Xu</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">Xtmp</span><span class="p">,</span> <span class="n">i</span> <span class="o">*</span> <span class="n">delay</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)])</span>
+        <span class="k">if</span> <span class="n">steps</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1">#Xu[Xu==0]=np.nan</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">Xu</span><span class="p">,</span><span class="mi">2</span><span class="p">)[</span><span class="n">steps</span><span class="o">-</span><span class="mi">1</span><span class="p">:,:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Xu</span>        
+
+<div class="viewcode-block" id="Dataset"><a class="viewcode-back" href="../../../data.html#untwist.data.Dataset">[docs]</a><span class="k">class</span> <span class="nc">Dataset</span><span class="p">(</span><span class="n">DatasetBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    In-memory Dataset</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_width</span><span class="p">,</span> <span class="n">x_type</span><span class="p">,</span> <span class="n">y_width</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">y_type</span> <span class="o">=</span> <span class="n">types</span><span class="o">.</span><span class="n">int_</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">x_width</span><span class="p">),</span> <span class="n">x_type</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">y_width</span><span class="p">),</span> <span class="n">y_type</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Dataset.add"><a class="viewcode-back" href="../../../data.html#untwist.data.Dataset.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Dataset.shuffle"><a class="viewcode-back" href="../../../data.html#untwist.data.Dataset.shuffle">[docs]</a>    <span class="k">def</span> <span class="nf">shuffle</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">perm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">perm</span><span class="p">,:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">[</span><span class="n">perm</span><span class="p">,:]</span></div>
+    
+<div class="viewcode-block" id="Dataset.standardize"><a class="viewcode-back" href="../../../data.html#untwist.data.Dataset.standardize">[docs]</a>    <span class="k">def</span> <span class="nf">standardize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">standardize_points</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Dataset.normalize"><a class="viewcode-back" href="../../../data.html#untwist.data.Dataset.normalize">[docs]</a>    <span class="k">def</span> <span class="nf">normalize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> \
+        <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span></div>
+                
+<div class="viewcode-block" id="Dataset.get_batch"><a class="viewcode-back" href="../../../data.html#untwist.data.Dataset.get_batch">[docs]</a>    <span class="k">def</span> <span class="nf">get_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">index</span> <span class="o">*</span> <span class="n">size</span><span class="p">:(</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">size</span><span class="p">,:]</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">[</span><span class="n">index</span> <span class="o">*</span> <span class="n">size</span><span class="p">:(</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">size</span><span class="p">,:]</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Dataset.save"><a class="viewcode-back" href="../../../data.html#untwist.data.Dataset.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;/X.npy&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;/Y.npy&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">)</span>        </div>
+        
+<div class="viewcode-block" id="Dataset.load"><a class="viewcode-back" href="../../../data.html#untwist.data.Dataset.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;/X.npy&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;/Y.npy&quot;</span><span class="p">)</span>                        </div>
+    
+<div class="viewcode-block" id="Dataset.normalize_points"><a class="viewcode-back" href="../../../data.html#untwist.data.Dataset.normalize_points">[docs]</a>    <span class="k">def</span> <span class="nf">normalize_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Dataset.standardize_points"><a class="viewcode-back" href="../../../data.html#untwist.data.Dataset.standardize_points">[docs]</a>    <span class="k">def</span> <span class="nf">standardize_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="p">,</span> 
+            <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>  <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div></div>
+        
+
+
+<div class="viewcode-block" id="MMDataset"><a class="viewcode-back" href="../../../data.html#untwist.data.MMDataset">[docs]</a><span class="k">class</span> <span class="nc">MMDataset</span><span class="p">(</span><span class="n">DatasetBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Disk-based version using numpy memmap</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> 
+        <span class="n">x_width</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> 
+        <span class="n">y_width</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">y_type</span> <span class="o">=</span> <span class="n">types</span><span class="o">.</span><span class="n">int_</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;/dataset.json&quot;</span><span class="p">):</span>
+            <span class="k">print</span> <span class="s2">&quot;Using existing dataset in &quot;</span><span class="o">+</span><span class="n">path</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">x_width</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">:</span> <span class="k">raise</span> <span class="s2">&quot;X width must be specified for new dataset&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">memmap</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;/X.npy&quot;</span><span class="p">,</span> <span class="n">x_type</span><span class="p">,</span> <span class="s2">&quot;w+&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">x_width</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">y_width</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">memmap</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;/Y.npy&quot;</span><span class="p">,</span> <span class="n">y_type</span><span class="p">,</span> <span class="s2">&quot;w+&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">y_width</span><span class="p">))</span>        
+                <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nrows</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">running_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">x_width</span><span class="p">),</span> <span class="n">x_type</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">running_dev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">x_width</span><span class="p">),</span> <span class="n">x_type</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">running_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">x_width</span><span class="p">),</span> <span class="n">x_type</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">running_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">x_width</span><span class="p">),</span> <span class="n">x_type</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+
+<div class="viewcode-block" id="MMDataset.load"><a class="viewcode-back" href="../../../data.html#untwist.data.MMDataset.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+            <span class="n">metadata</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;/dataset.json&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;index&quot;</span><span class="p">])</span>
+            <span class="n">x_shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;x_shape&quot;</span><span class="p">])</span>
+            <span class="n">x_type</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;x_type&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s2">&quot;y_shape&quot;</span> <span class="ow">in</span> <span class="n">metadata</span><span class="p">:</span> 
+                <span class="n">y_shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;y_shape&quot;</span><span class="p">])</span>            
+                <span class="n">y_type</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;y_type&quot;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">memmap</span><span class="p">(</span><span class="n">path</span><span class="o">+</span><span class="s2">&quot;/Y.npy&quot;</span><span class="p">,</span> <span class="n">y_type</span><span class="p">,</span> <span class="n">shape</span> <span class="o">=</span> <span class="n">y_shape</span><span class="p">)</span>                
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nrows</span> <span class="o">=</span> <span class="n">x_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">running_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;running_mean&quot;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">running_dev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;running_dev&quot;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">running_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;running_min&quot;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">running_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;running_max&quot;</span><span class="p">])</span>            
+            <span class="bp">self</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span>  <span class="n">np</span><span class="o">.</span><span class="n">memmap</span><span class="p">(</span><span class="n">path</span><span class="o">+</span><span class="s2">&quot;/X.npy&quot;</span><span class="p">,</span> <span class="n">x_type</span><span class="p">,</span> <span class="n">shape</span> <span class="o">=</span> <span class="n">x_shape</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span></div>
+                    
+<div class="viewcode-block" id="MMDataset.save"><a class="viewcode-back" href="../../../data.html#untwist.data.MMDataset.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>            
+            <span class="s2">&quot;x_shape&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+            <span class="s2">&quot;x_type&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+            <span class="s2">&quot;running_mean&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_mean</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="s2">&quot;running_dev&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_dev</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> 
+            <span class="s2">&quot;running_min&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_min</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> 
+            <span class="s2">&quot;running_max&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_max</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;y_shape&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;y_type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="o">+</span><span class="s2">&quot;/dataset.json&quot;</span><span class="p">,</span> <span class="s2">&quot;wt&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span> 
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">metadata</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+    
+    
+<div class="viewcode-block" id="MMDataset.add"><a class="viewcode-back" href="../../../data.html#untwist.data.MMDataset.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span>  <span class="n">np</span><span class="o">.</span><span class="n">memmap</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="o">+</span><span class="s2">&quot;/X.npy&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> 
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nrows</span> <span class="o">+</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">nrows</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">nrows</span> <span class="o">+</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],:]</span> <span class="o">=</span> <span class="n">x</span>
+            
+        <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span> 
+            <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span> <span class="k">raise</span> <span class="s2">&quot;x and y should have the same shape&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">memmap</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="o">+</span><span class="s2">&quot;/Y.npy&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nrows</span> <span class="o">+</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">nrows</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">nrows</span> <span class="o">+</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],:]</span> <span class="o">=</span> <span class="n">y</span>
+
+        <span class="n">delta</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_mean</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span>            
+        <span class="bp">self</span><span class="o">.</span><span class="n">running_dev</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">delta</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_mean</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running_mean</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">delta</span> <span class="o">/</span> <span class="n">n</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running_max</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">running_max</span><span class="p">,</span> <span class="n">x</span><span class="p">)),</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running_min</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">running_min</span><span class="p">,</span> <span class="n">x</span><span class="p">)),</span> <span class="mi">0</span><span class="p">)</span>            
+        <span class="bp">self</span><span class="o">.</span><span class="n">nrows</span> <span class="o">+=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="MMDataset.shuffle"><a class="viewcode-back" href="../../../data.html#untwist.data.MMDataset.shuffle">[docs]</a>    <span class="k">def</span> <span class="nf">shuffle</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>        </div>
+
+<div class="viewcode-block" id="MMDataset.normalize_points"><a class="viewcode-back" href="../../../data.html#untwist.data.MMDataset.normalize_points">[docs]</a>    <span class="k">def</span> <span class="nf">normalize_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_min</span><span class="p">,</span> 
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">running_max</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_min</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="MMDataset.standardize_points"><a class="viewcode-back" href="../../../data.html#untwist.data.MMDataset.standardize_points">[docs]</a>    <span class="k">def</span> <span class="nf">standardize_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">running_dev</span><span class="p">)</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">running_dev</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">tmp</span><span class="p">)</span>
+        <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_mean</span><span class="p">,</span> <span class="n">std</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+        
+<div class="viewcode-block" id="MMDataset.get_batch"><a class="viewcode-back" href="../../../data.html#untwist.data.MMDataset.get_batch">[docs]</a>    <span class="k">def</span> <span class="nf">get_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">normalization</span> <span class="o">=</span> <span class="mi">2</span><span class="p">):</span>              
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">index</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">size</span> <span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;requested index too large&quot;</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">index</span> <span class="o">*</span> <span class="n">size</span><span class="p">:(</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">size</span><span class="p">],:]</span>        
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">index</span> <span class="o">*</span> <span class="n">size</span><span class="p">:(</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">size</span><span class="p">],:]</span> \
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="n">normalization</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> 
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_points</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">normalization</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span> 
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">standardize_points</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">untwist 0.1 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, University of Surey.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.2.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Base &mdash; untwist 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="untwist 0.1 documentation" href="index.html" />
+    <link rel="next" title="Data" href="data.html" />
+    <link rel="prev" title="untwist" href="index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="data.html" title="Data"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="untwist"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">untwist 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="base">
+<span id="id1"></span><h1>Base<a class="headerlink" href="#base" title="Permalink to this headline">¶</a></h1>
+<span class="target" id="module-untwist.base"></span><dl class="class">
+<dt id="untwist.base.Processor">
+<em class="property">class </em><code class="descclassname">untwist.base.</code><code class="descname">Processor</code><a class="reference internal" href="_modules/untwist/base/algorithms.html#Processor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.base.Processor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Processor objects are the core of the framework. It should be possible to 
+implement any algorithm as a processor. The interface is similar to most 
+audio signal processing frameworks. The object encapsulates a function that 
+processes some information. Hence the only methods are __init__() 
+(for initialization) and process().
+This base class defines the interface for processors. Parameters and return 
+values for the process() method will vary accross algorithms</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="untwist.base.Model">
+<em class="property">class </em><code class="descclassname">untwist.base.</code><code class="descname">Model</code><a class="reference internal" href="_modules/untwist/base/algorithms.html#Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#untwist.base.Model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Models are algorithms that can be trained and have some state. 
+The state can be saved and used to make predictions</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="untwist.base.int_">
+<code class="descclassname">untwist.base.</code><code class="descname">int_</code><a class="headerlink" href="#untwist.base.int_" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">int64</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="untwist.base.float_">
+<code class="descclassname">untwist.base.</code><code class="descname">float_</code><a class="headerlink" href="#untwist.base.float_" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">float64</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="untwist.base.complex_">
+<code class="descclassname">untwist.base.</code><code class="descname">complex_</code><a class="headerlink" href="#untwist.base.complex_" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">complex128</span></code></p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">untwist</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="data.html"
+                        title="next chapter">Data</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/base.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="data.html" title="Data"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="untwist"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">untwist 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, University of Surey.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.2.
+    </div>
+  </body>
+</html>
