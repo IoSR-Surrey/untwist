@@ -5,6 +5,10 @@ import theano.tensor as T
 floatX = theano.config.floatX
 
 class SGD(object):
+    """
+    Stochastic gradient descent algorithm for training MLP instances
+    Includes momentum, learning rate scheduling, early stopping.
+    """
 
     def __init__(self, mlp, learning_rate = 0.1, 
         momentum = 0.5, batch_size = 100, iterations = 100,
@@ -78,6 +82,9 @@ class SGD(object):
         )
 
     def train(self, dataset):
+        """
+        Train the MLP passed to the constructor using a Dataset.
+        """
         n_batches = dataset.X.shape[0] / self.batch_size
         patience = self.patience
         
@@ -129,5 +136,8 @@ class SGD(object):
                     
 
     def predict(self, data):
+        """
+        Get mlp prediction from observation.
+        """
         self.xi.set_value(data)
         return self.predict_func()

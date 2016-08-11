@@ -49,7 +49,7 @@ class YINFFT(Processor):
     YINFFT F0 estimation algorithm
     Brossier, P. M. (2006). Automatic annotation of musical audio for interactive applications 
     (Doctoral dissertation, Queen Mary University of London).
-    Based on Essentia implementation http://essentia.upf.edu
+    Based on Essentia C++ implementation http://essentia.upf.edu
     """
     freq_mask = [0., 20., 25., 31.5, 40., 50., 63., 80., 100., 125., 160.,\
     200., 250., 315., 400., 500., 630., 800., 1000., 1250., 1600., 2000.,\

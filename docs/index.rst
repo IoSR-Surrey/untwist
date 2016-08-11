@@ -16,6 +16,7 @@ Contents:
    factorizations
    hpss
    neuralnetworks
+   analysis
 
 
 

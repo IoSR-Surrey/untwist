@@ -8,7 +8,7 @@ from untwist.base.algorithms import Processor
 
 class OnsetDetector(Processor):
     """
-    Onset detector based on comon time-frequency detection functions.
+    Onset detector based on comon detection functions.
     Based on: Bello, J. P., Daudet, L., Abdallah, S., Duxbury, C., 
     Davies, M., & Sandler, M. B. (2005). 
     A tutorial on onset detection in music signals. 
@@ -34,21 +34,39 @@ class OnsetDetector(Processor):
         return onsets
 
     def energy(self, X):
+        """
+        Spectrum energy
+        """
         return np.sum(X.magnitude()**2,0) / X.shape[0]
 
     def hfc(self, X):
+        """
+        High frequency content
+        """
         bin_hz = 0.5 * X.sample_rate / float(X.shape[0])
         weights = (bin_hz * np.arange(X.shape[0]))**2
         return np.sum(X.magnitude() * weights[:,np.newaxis],0)
 
     def _diff(self, X):
+        """
+        Generic difference (spectral flux)
+        """
         return np.insert(np.abs(np.sum(np.diff(X),0)),0,0)
 
     def mag_diff(self, X):
+        """
+        Magnitude difference
+        """
         return self._diff(X.magnitude())   
     
     def phase_diff(self, X):
+        """
+        Phase difference
+        """
         return self._diff(X.magnitude())   
 
     def complex_diff(self, X):
+        """
+        Complex difference
+        """
         return self._diff(X)

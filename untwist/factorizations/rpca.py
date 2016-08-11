@@ -1,12 +1,12 @@
-"""
-Robust PCA, Inexact ALM method
-Based on http://perception.csl.illinois.edu/matrix-rank/sample_code.html
-"""
 import numpy as np
 from numpy import linalg
 from ..base.algorithms import Processor
 
 class RPCA(Processor):
+    """
+    Robust PCA, Inexact ALM method
+    Based on http://perception.csl.illinois.edu/matrix-rank/sample_code.html
+    """
     
     def __init__(self, iterations = 100, threshold = None, l = 1, mu = 1.25, rho = 1.5):
         self.iterations = iterations
