@@ -49,7 +49,7 @@ class Layer(object):
 
         
 
-class MLP(object):
+class MLP(Model):
     """
     Multi-Layer Perceptron network, specified by the size of the input, 
     the output and an arbitrary number of hidden layers.
