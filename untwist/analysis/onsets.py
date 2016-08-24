@@ -4,7 +4,7 @@ Onset detection algorithms
 import numpy as np
 from scipy import signal, interpolate
 from scipy.stats import zscore
-from untwist.base.algorithms import Processor
+from ..base.algorithms import Processor
 
 class OnsetDetector(Processor):
     """

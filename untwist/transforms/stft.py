@@ -4,9 +4,8 @@ Forward and inverse Short-Time Fourier Transform
 
 import numpy as np
 from numpy.lib import stride_tricks
-from ..base import Processor
+from ..base import Processor, parallel_process
 from ..data import audio
-from untwist.base import parallel_process
 
 
 

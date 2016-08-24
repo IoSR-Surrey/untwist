@@ -9,10 +9,9 @@ IEEE Trans. on Audio, Speech and Language Processing, 14(1):91-98, 2006
 import numpy as np
 from numpy.lib import stride_tricks
 from scipy import signal
-from ..base import Processor
+from ..base import Processor, parallel_process
 from ..data import audio
 from numpy import linalg
-from untwist.base import parallel_process
 
 def fftfilt(b, x, *n):
     N_x = len(x)
