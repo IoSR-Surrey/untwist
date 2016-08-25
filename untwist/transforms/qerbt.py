@@ -9,10 +9,9 @@ IEEE Trans. on Audio, Speech and Language Processing, 14(1):91-98, 2006
 import numpy as np
 from numpy.lib import stride_tricks
 from scipy import signal
-from ..base import Processor
+from ..base import Processor, parallel_process
 from ..data import audio
 from numpy import linalg
-from untwist.base import parallel_process
 
 def fftfilt(b, x, *n):
     N_x = len(x)
@@ -71,7 +70,7 @@ class QERBT(Processor):
             self.filters.append(np.hanning(2 * w + 1) * exponential)
 
     def make_signal_window(self, n_frames):
-        half_win = self.w_len / 2.0
+        half_win = int(self.w_len / 2.0)
         signal_window = np.zeros(((n_frames + 1) * half_win,1))
         for t in range(n_frames):
             s = t * half_win
@@ -91,7 +90,7 @@ class QERBT(Processor):
         win_ratios = [self.window / swindow[t * self.w_len / 2 : 
             t * self.w_len / 2 + self.w_len] 
             for t in range(n)]
-        wave = wave.zero_pad(0, m - wave.num_frames)
+        wave = wave.zero_pad(0, int(m - wave.num_frames))
         wave = audio.Wave(signal.hilbert(wave), wave.sample_rate)        
         result = np.zeros((self.n_bins, n))
         
@@ -99,8 +98,8 @@ class QERBT(Processor):
             w = self.widths[b]
             wc = 1 / np.square(w + 1)
             filter = self.filters[b]
-            band = fftfilt(filter, wave.zero_pad(0, 2 * w)[:,0])
-            band = band[w : w + m, np.newaxis]    
+            band = fftfilt(filter, wave.zero_pad(0, int(2 * w))[:,0])
+            band = band[int(w) : int(w + m), np.newaxis]    
             for t in range(n):
                 frame = band[t * self.w_len / 2:
                              t * self.w_len / 2 + self.w_len,:] * win_ratios[t]
@@ -139,7 +138,7 @@ class QERBFilter(QERBT):
         win_ratios = [self.window / swindow[t * self.w_len / 2 :
             t * self.w_len / 2 + self.w_len]
             for t in range(n)]
-        wave = wave.zero_pad(0, (n + 1) * self.w_len / 2.0 - wave.num_frames)
+        wave = wave.zero_pad(0, int((n + 1) * self.w_len / 2.0 - wave.num_frames))
         wave = audio.Wave(signal.hilbert(wave), wave.sample_rate)
         result = np.zeros(wave.shape)
 
@@ -147,14 +146,14 @@ class QERBFilter(QERBT):
             w = self.widths[b]
             wc = 1/np.square(w + 1)
             filter = 1/w * self.filters[b]
-            band = fftfilt(filter, wave.zero_pad(0, 2 * w)[:,0])
-            band = band[w : w + (n + 1) * self.w_len / 2, np.newaxis]
+            band = fftfilt(filter, wave.zero_pad(0, int(2 * w))[:,0])
+            band = band[int(w) : int(w + (n + 1) * self.w_len / 2), np.newaxis]
             out_band = audio.Wave(np.zeros(band.shape, np.complex128), wave.sample_rate)
             for t in range(n):
-                start = t * self.w_len / 2
-                end = t * self.w_len / 2 + self.w_len
+                start = int(t * self.w_len / 2)
+                end = int(t * self.w_len / 2 + self.w_len)
                 frame = band[start:end,:] * win_ratios[t]**2
                 out_band[start:end,:] = out_band[start:end,:] + frame * W[b,t]
-            out_band = np.real(fftfilt(filter, out_band.zero_pad(0, 2 * w)[:,0]))
-            result[:,0] = result[:,0] + self.weights[b] * out_band[w: w + m]
+            out_band = np.real(fftfilt(filter, out_band.zero_pad(0, int(2 * w))[:,0]))
+            result[:,0] = result[:,0] + self.weights[b] * out_band[int(w): int(w + m)]
         return result

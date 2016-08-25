@@ -4,9 +4,8 @@ Forward and inverse Short-Time Fourier Transform
 
 import numpy as np
 from numpy.lib import stride_tricks
-from ..base import Processor
+from ..base import Processor, parallel_process
 from ..data import audio
-from untwist.base import parallel_process
 
 
 
@@ -28,10 +27,10 @@ class STFT(Processor):
     def process(self, wave):
         wave.check_mono()
         window_size = len(self.window)
-        half_window = np.floor(window_size / 2.0)
+        half_window = int(np.floor(window_size / 2.0))
         wave = wave.zero_pad(half_window, half_window)        
-        num_frames = 1 + np.ceil((wave.shape[0] - window_size) / 
-            float(self.hop_size))                
+        num_frames = int(1 + np.ceil((wave.shape[0] - window_size) / 
+            float(self.hop_size)))                
         col_size = wave.strides[0]
         frames = stride_tricks.as_strided(wave, shape=(num_frames, window_size),
             strides=(col_size*self.hop_size, col_size)).copy()

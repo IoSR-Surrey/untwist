@@ -162,7 +162,7 @@ class Wave(Signal):
         """
 
         start = np.zeros((start_frames, self.num_channels),_types.float_)
-        end = np.zeros((end_frames,self.num_channels),_types.float_)
+        end = np.zeros((end_frames, self.num_channels), _types.float_)
         # avoid 1d shape
         tmp = self.reshape(self.shape[0], self.num_channels)
         return Wave(np.concatenate((start,tmp,end)), self.sample_rate)

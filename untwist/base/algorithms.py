@@ -38,9 +38,9 @@ class Model(object):
         pass
 
     @abc.abstractmethod
-    def train(self, data, target):
+    def load(self, fname):
         pass
 
     @abc.abstractmethod
-    def predict(self, data):
+    def save(self, fname):
         pass
