@@ -10,7 +10,7 @@ To install untwist, clone the github repository and run `python setup.py install
 usage
 =====
 A typical usage scenario involves loading an audio file, computing a time-frequency transform to obtain a spectrogram, and using some of the source separation algorithms to obtain a time-frequency mask. The mask is then multiplied with the spectrogram and the result is converted back to the time domain.
-See the examples folder for some code examples.
+See the examples folder for some code examples. See the [API documentation](http://iosr-surrey.github.io/untwist/) for reference.
 
 license
 =======
