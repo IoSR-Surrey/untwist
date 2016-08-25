@@ -2,6 +2,4 @@
 
 Soundcard
 =========
-.. automodule:: untwist.soundcard
-   :members:
-   :undoc-members:
+The soundcard module contains audio driver implementations that are used the Wave class to record and play sounds.
