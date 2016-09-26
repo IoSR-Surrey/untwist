@@ -1,8 +1,9 @@
+from __future__ import print_function
 try:
-    import pyaudio_driver
-    audio_driver = pyaudio_driver.PyAudioDriver()
+    from .pyaudio_driver import PyAudioDriver    
+    audio_driver = PyAudioDriver()
 except:
     audio_driver = None
-    print "Sound card not available"
+    print("Sound card not available")
 
 __all__ = ['audio_driver']

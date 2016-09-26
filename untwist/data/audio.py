@@ -12,12 +12,11 @@ from ..soundcard import audio_driver
 from matplotlib.colors import LinearSegmentedColormap
 
 
-
 """ utility functions"""
 
-def ensure2D(ndarray):    
+def ensure2D(ndarray):
     if len(ndarray.shape)==1:
-        ndarray = ndarray.reshape((ndarray.shape[0],1))    
+        ndarray = ndarray.reshape((ndarray.shape[0],1))
     return ndarray
 
 eps = np.spacing(1)
@@ -26,20 +25,20 @@ eps = np.spacing(1)
 
 class Signal(np.ndarray):
     """
-    Time domain signal. Layout is one column per channel.    
-    
+    Time domain signal. Layout is one column per channel.
+
     Parameters
     ----------
-    
+
     samples: ndarray
         Signal data.
     sample_rate: int
         Sample rate in samples / second.
-    """    
+    """
     __array_priority__ = 10
     def __new__(cls, samples, sample_rate = 44100):
         samples = ensure2D(samples)
-        instance = np.ndarray.__new__(cls, 
+        instance = np.ndarray.__new__(cls,
             samples.shape, dtype = samples.dtype, strides = samples.strides, buffer = samples)
         instance.sample_rate = sample_rate
         return instance
@@ -48,13 +47,13 @@ class Signal(np.ndarray):
         if obj is None: return
         self.sample_rate = getattr(obj, 'sample_rate', None)
 
-    def __array_prepare__(self, out_arr, context = None): 
+    def __array_prepare__(self, out_arr, context = None):
         return np.ndarray.__array_prepare__(self, out_arr, context)
-        
-    def __array_wrap__(self, out_arr, context = None):    
+
+    def __array_wrap__(self, out_arr, context = None):
         return np.ndarray.__array_wrap__(self, out_arr, context)
-        
-        
+
+
     def __reduce__(self): #pickle additional attributes
         pickled_state = super(Signal, self).__reduce__()
         new_state = pickled_state[2] + (self.sample_rate,)
@@ -63,8 +62,8 @@ class Signal(np.ndarray):
     def __setstate__(self, state):
         self.sample_rate = state[-1]
         super(Signal, self).__setstate__(state[0:-1])
-                 
-    @property  
+
+    @property
     def num_channels(self):
         """
         Number of channels
@@ -84,7 +83,7 @@ class Signal(np.ndarray):
         """
         if self.num_channels > 1:
             raise ChannelLayoutException()
-            
+
     def as_ndarray(self):
         """
         Return the data as ndarray again
@@ -94,9 +93,9 @@ class Signal(np.ndarray):
 class Wave(Signal):
     """
     Audio waveform signal.
-    
+
     Parameters
-    ----------    
+    ----------
     samples: ndarray
         Signal data.
     sample_rate: int
@@ -105,7 +104,7 @@ class Wave(Signal):
 
     def __init__(self, samples, sample_rate):
         self.stream = None
-        super(Wave, self).__init__(samples, sample_rate)
+        super(Wave, self).__new__(Wave, samples, sample_rate)
 
     def __array_finalize__(self, obj):
         if obj is None: return
@@ -116,42 +115,42 @@ class Wave(Signal):
     def read(cls, filename):
         """
         Read an audio file (only wav is supported).
-        
+
         Parameters
         ----------
         filename: string
-            Path to the wav file.        
+            Path to the wav file.
         """
         sample_rate, samples = wavfile.read(filename)
-        if samples.dtype==np.dtype('int16'):            
+        if samples.dtype==np.dtype('int16'):
             samples = samples.astype(_types.float_) / np.iinfo(np.dtype('int16')).min
         if len(samples.shape)==1:
             samples = samples.reshape((samples.shape[0],1))
         instance = cls(samples, sample_rate)
         return instance
-        
+
     def write(self, filename):
         """
         Write the data to an audio file (only wav is supported).
-        
+
         Parameters
         ----------
         filename: string
-            Path to the wav file.        
+            Path to the wav file.
         """
 
         wavfile.write(filename, self.sample_rate, self)
-        
+
     def normalize(self):
         """
         Normalize by maximum amplitude.
         """
-        return Wave(np.divide(self, np.max(np.abs(self), 0)), self.sample_rate)                
-            
+        return Wave(np.divide(self, np.max(np.abs(self), 0)), self.sample_rate)
+
     def zero_pad(self, start_frames, end_frames = 0):
         """
         Pad with zeros at the start and/or end
-        
+
         Parameters
         ----------
         start_frames: int
@@ -176,7 +175,7 @@ class Wave(Signal):
             f = plt.plot(time_values, self)
         else:
             f, axes = plt.subplots(self.num_channels, sharex=True)
-            for ch in range(self.num_channels):        
+            for ch in range(self.num_channels):
                 axes[ch].plot(time_values, self[:,ch])
         plt.xlabel('time (s)')
         return f
@@ -184,13 +183,15 @@ class Wave(Signal):
     def play(self, stop_func = None):
         """
         Play the sound with the current audio driver.
-        
+
         Parameters
         ----------
         stop_func: function
             Function to execute when the sound ends.
         """
-        if self.stream is None: 
+        if self.stream is None:
+            print("hi?")
+            print(audio_driver)
             self.stream = audio_driver.play(
                 self, sr = self.sample_rate, stop_func = stop_func
             )
@@ -201,8 +202,8 @@ class Wave(Signal):
         """
         audio_driver.stop(self.stream)
         self.stream = None
-        
-    @classmethod 
+
+    @classmethod
     def record(cls, max_seconds = 10, num_channels = 2, sr = 44100,
         stop_func= None):
         return audio_driver.record(max_seconds, num_channels, sr, stop_func)
@@ -211,19 +212,19 @@ class Wave(Signal):
     def duration(self):
         return float(self.shape[0]) / self.sample_rate
 
-    
+
 
 class Spectrum(Signal):
     """
     Audio spectrum complex signal.
     """
-        
+
     def __array_finalize__(self, obj):
-        if obj is None: return        
+        if obj is None: return
         self.sample_rate = getattr(obj, 'sample_rate', None)
         self.window_size = getattr(obj, 'window_size', None)
         self.hop_size = getattr(obj, 'hop_size', None)
-    
+
     def __reduce__(self): #pickle additional attributes
         pickled_state = super(Spectrum, self).__reduce__()
         new_state = pickled_state[2] + (self.window_size, self.hop_size)
@@ -233,19 +234,19 @@ class Spectrum(Signal):
         self.hop_size = state[-1]
         self.window_size = state[-2]
         super(Spectrum, self).__setstate__(state[0:-2])
-    
+
     def magnitude(self):
         """
         Return the magnitude spectrum.
         """
-        return np.abs(self) 
+        return np.abs(self)
 
     def phase(self):
         """
         Return the phase spectrum.
         """
         return np.angle(self)
-        
+
     def plot(self):
         """
         Plot magnitude and phase.
@@ -254,14 +255,14 @@ class Spectrum(Signal):
         axes[0].plot(self.magnitude())
         axes[0].plot(self.phase())
         return f
-       
-        
-        
+
+
+
 class Spectrogram(Spectrum):
     """
     Complex audio spectrogram matrix.
     Rows are frequency bins (0th is the lowest frequency), columns are time bins.
-    
+
     Parameters
     ----------
     samples: complex
@@ -273,20 +274,20 @@ class Spectrogram(Spectrum):
     hop_size: int
         Hop size of the time-frequency transform used to obtain the spectrogram.
     """
-    
+
     def __new__(cls, samples, sample_rate = 44100, window_size = 1024, hop_size = 512):
-        instance = Signal.__new__(cls, samples, sample_rate)             
+        instance = Signal.__new__(cls, samples, sample_rate)
         instance.window_size = window_size
         instance.hop_size = hop_size
         return instance
-    
+
     def __array_finalize__(self, obj):
-        if obj is None: return        
+        if obj is None: return
         self.sample_rate = getattr(obj, 'sample_rate', None)
         self.window_size = getattr(obj, 'window_size', None)
         self.hop_size = getattr(obj, 'hop_size', None)
-   
-    @property  
+
+    @property
     def num_channels(self):
         return 1
 
@@ -296,16 +297,16 @@ class Spectrogram(Spectrum):
         Number of spectral frames.
         """
         return self.shape[1]
-            
-    def plot(self,**kwargs):        
+
+    def plot(self,**kwargs):
         return self.magnitude_plot(**kwargs )
-        
-    def magnitude_plot(self, colormap = "CMRmap", min_freq = 0, max_freq = None, 
-        axes = None, label_x = True, label_y = True, title = None, 
+
+    def magnitude_plot(self, colormap = "CMRmap", min_freq = 0, max_freq = None,
+        axes = None, label_x = True, label_y = True, title = None,
         colorbar = True, log_mag = True):
         """
         Plot the magnitude spectrogram
-        
+
         Parameters
         ----------
         colormap: string
@@ -325,10 +326,10 @@ class Spectrogram(Spectrum):
         colorbar: boolean
             Add a colorbar.
         log_mag: boolean
-            Plot log magnitude.            
+            Plot log magnitude.
         """
         mag = self.magnitude()
-        if log_mag: 
+        if log_mag:
             mag = 20. * np.log10((mag / np.max(mag)) + np.spacing(1))
             min_val = -60
         else:
@@ -339,21 +340,21 @@ class Spectrogram(Spectrum):
         bin_hz = self.sample_rate / (self.shape[0] * 2)
         freq_values = np.arange(self.shape[0]) * bin_hz
         if axes == None: axes = plt.gca()
-        img = axes.imshow(mag, 
-            cmap = colormap,  
-            aspect="auto", 
+        img = axes.imshow(mag,
+            cmap = colormap,
+            aspect="auto",
             vmin = min_val,
             origin ="low",
             extent = [0, time_values[-1], min_freq, max_freq]
         )
         if colorbar:plt.colorbar(img, ax = axes)
         if label_x: axes.set_xlabel("time (s)")
-        if label_y: axes.set_ylabel("freq (hz)")        
+        if label_y: axes.set_ylabel("freq (hz)")
         plt.setp(axes.get_xticklabels(), visible = label_x)
         plt.setp(axes.get_yticklabels(), visible = label_y)
         if title is not None:
             axes.text(0.9, 0.9, title, horizontalalignment = 'right',
-                bbox={'facecolor':'white', 'alpha':0.7, 'pad':5}, 
+                bbox={'facecolor':'white', 'alpha':0.7, 'pad':5},
                 transform=axes.transAxes)
         return axes
 
@@ -362,11 +363,11 @@ class TFMask(Spectrogram):
     Base time-frequency mask for multiplying with spectrograms.
     """
 
-    def plot(self, mask_color = (1, 0, 0, 0.5), min_freq = 0, max_freq = None, 
+    def plot(self, mask_color = (1, 0, 0, 0.5), min_freq = 0, max_freq = None,
         axes = None, label_x = True, label_y = True, title = None):
         """
-        Plot the time-frequency mask. 
-        
+        Plot the time-frequency mask.
+
         Parameters
         ----------
         mask_color: tuple
@@ -376,7 +377,7 @@ class TFMask(Spectrogram):
         max_freq: float
             maximum frequency in Hz (for labelling the axis).
         axes: matplotlib axes object
-            Axes object for plotting on existing figure. 
+            Axes object for plotting on existing figure.
             If provided, the mask is assumed to be overlaif on a spectrogram.
         label_x: boolean
             Add labels to x axis.
@@ -384,21 +385,21 @@ class TFMask(Spectrogram):
             Add labels to y axis.
         title: string
             Plot title (overlaid on image).
-        """                                        
-        if axes == None: 
+        """
+        if axes == None:
             colormap =  LinearSegmentedColormap.from_list("map",["white","black"])
         else:
             alpha_color = [mask_color[0], mask_color[1], mask_color[2], 0]
             colormap = LinearSegmentedColormap.from_list("map", [alpha_color, mask_color])
         Spectrogram.magnitude_plot(
-            self, colormap, min_freq, max_freq, axes, label_x, label_y, title, 
+            self, colormap, min_freq, max_freq, axes, label_x, label_y, title,
             False, False
             )
-        
+
 class BinaryMask(TFMask):
     """
     Binary Mask based on a comparison between target and background.
-    If the threshold is 0, the mask is 1 when the target magnitude is larger 
+    If the threshold is 0, the mask is 1 when the target magnitude is larger
     than the background, and 0 otherwise.
     """
 
@@ -411,13 +412,13 @@ class BinaryMask(TFMask):
         instance.window_size = target.window_size
         instance.hop_size = target.hop_size
         return instance
-    
+
 class RatioMask(TFMask):
     """
-    Ratio Mask: soft mask based on ratio of target to background magnitude, 
+    Ratio Mask: soft mask based on ratio of target to background magnitude,
     with optional exponent p.
     """
-    
+
     def __new__(cls, target, background, p = 1):
         tm = target.magnitude() + eps
         bm = background.magnitude() + eps
@@ -426,4 +427,4 @@ class RatioMask(TFMask):
         instance.sample_rate = target.sample_rate
         instance.window_size = target.window_size
         instance.hop_size = target.hop_size
-        return instance        
+        return instance

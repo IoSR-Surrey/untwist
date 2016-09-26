@@ -1,3 +1,4 @@
+from __future__ import print_function
 import copy
 import numpy as np
 import theano
@@ -10,7 +11,7 @@ class SGD(object):
     Includes momentum, learning rate scheduling, early stopping.
     """
 
-    def __init__(self, mlp, learning_rate = 0.1, 
+    def __init__(self, mlp, learning_rate = 0.1,
         momentum = 0.5, batch_size = 100, iterations = 100,
         patience = 0, rate_decay_th = 0.1):
         self.mlp = mlp
@@ -21,42 +22,42 @@ class SGD(object):
         self.patience = patience
         self.do_validation = patience > 0
         self.rate_decay_th = rate_decay_th
-        
+
         self.l_r = l_r = T.scalar('l_r', dtype = floatX)
         self.learning_rate_decay = 1
-        
+
         self.training_error = []
         cost = mlp.cost /(2 * batch_size)
         self.gparams = [T.grad(cost, param) for param in mlp.params]
         self.param_updates = [
             theano.shared(value = np.zeros(
-                param.get_value().shape, 
+                param.get_value().shape,
                 dtype = theano.config.floatX)
             )
             for param in mlp.params
         ]
         self.updates = []
         for param, gparam, uparam in zip(
-            mlp.params, 
-            self.gparams, 
+            mlp.params,
+            self.gparams,
             self.param_updates):
-                
+
             self.updates.append(
                 (param, param - self.l_r * uparam)
             )
-            
+
             self.updates.append(
                 (uparam, (momentum * uparam) + ((1. - momentum) * gparam))
             )
         n_bins = mlp.hidden_layers[0].W.shape.eval()[0]
 
-        self.xi = theano.shared( 
-            name  = 'xi',  
+        self.xi = theano.shared(
+            name  = 'xi',
             value = np.zeros((self.batch_size,n_bins), dtype = floatX),
             allow_downcast = True)
-            
+
         self.yi = theano.shared(
-            name  = 'yi', 
+            name  = 'yi',
             value = np.zeros((self.batch_size,n_bins), dtype = floatX),
             allow_downcast = True)
 
@@ -70,10 +71,10 @@ class SGD(object):
 
         self.validation_func = theano.function(
             inputs = [],
-            outputs = cost,            
+            outputs = cost,
             allow_input_downcast = True,
             givens = {mlp.input:self.xi, mlp.target:self.yi}
-        )        
+        )
         self.predict_func = theano.function(
             inputs = [],
             outputs = mlp.output,
@@ -85,19 +86,19 @@ class SGD(object):
         """
         Train the MLP passed to the constructor using a Dataset.
         """
-        n_batches = dataset.X.shape[0] / self.batch_size
+        n_batches = int(dataset.X.shape[0] / self.batch_size)
         patience = self.patience
-        
+
         if self.do_validation:
-            val_batches = int(n_batches / 5) # 20% validation            
-            n_batches = n_batches - val_batches                        
+            val_batches = int(n_batches / 5) # 20% validation
+            n_batches = n_batches - val_batches
             best_val_err = np.inf
         prev_err = np.inf
 
         for epoch in range(self.iterations):
             train_err = 0
-            for index in xrange(n_batches):
-                batch = dataset.get_batch(index, self.batch_size)      
+            for index in range(n_batches):
+                batch = dataset.get_batch(index, self.batch_size)
                 self.xi.set_value(np.nan_to_num(batch[0]).astype(floatX))
                 self.yi.set_value(np.nan_to_num(batch[1]).astype(floatX))
                 train_err += self.train_func(self.learning_rate)
@@ -105,35 +106,35 @@ class SGD(object):
             if self.do_validation:
                 val_err = 0
                 for val_index in range(n_batches, n_batches + val_batches):
-                    val_batch = dataset.get_batch(val_index, self.batch_size)                               
+                    val_batch = dataset.get_batch(val_index, self.batch_size)
                     self.xi.set_value(np.nan_to_num(val_batch[0]))
                     self.yi.set_value(np.nan_to_num(val_batch[1]).astype(floatX))
                     val_err += self.validation_func()
                 val_err = val_err / n_batches
-                print "val_err", val_err , "best ", best_val_err
+                print ("val_err", val_err , "best ", best_val_err)
                 if val_err < best_val_err:
-                    best_params = copy.deepcopy(self.mlp.params) 
+                    best_params = copy.deepcopy(self.mlp.params)
                     best_val_err = val_err
                     patience = self.patience
                 else:
                     patience -= 1
 
             err = train_err / n_batches
-            print epoch, err
-                    
+            print(epoch, err)
+
             if self.do_validation and patience == 0:
-                print "patience over, returning"
+                print("patience over, returning")
                 self.mlp.params = best_params
-                print "final validation error ", best_val_err
+                print("final validation error ", best_val_err)
                 return
-            print err - prev_err
+            print(err - prev_err)
             if prev_err - err < self.rate_decay_th:
                 if self.learning_rate_decay == 1:
-                    print "starting learning rate decay"
-                self.learning_rate_decay = 0.9            
+                    print("starting learning rate decay")
+                self.learning_rate_decay = 0.9
             self.learning_rate = self.learning_rate * self.learning_rate_decay
             prev_err = err
-                    
+
 
     def predict(self, data):
         """

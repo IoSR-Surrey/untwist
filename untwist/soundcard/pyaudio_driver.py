@@ -1,8 +1,8 @@
 """"
-PyAudio driver. Requires pyaudio >=0.26 (non-blocking operation). 
+PyAudio driver. Requires pyaudio >=0.26 (non-blocking operation).
 Only tested with 0.28
 """
-
+from __future__ import print_function
 import pyaudio as pa
 import numpy as np
 from ..soundcard import driver
@@ -10,27 +10,27 @@ from ..base import types
 
 
 class PyAudioDriver(driver.AudioDriver):
-    
-    class PlaybackStream():
+
+    class PlaybackStream(object):
         def __init__(self, signal, range, stop_func):
             self.signal = signal
             if range==(): range = (0,signal.shape[0]-1)
             self.range = range
             self.pos = range[0]
             self.stop_func = stop_func
-         
+
         def  callback(self, in_data, count, time_info, status):
                 if self.pos + count > self.range[1]:
                     output = self.signal[self.pos:self.range[1], :]
                     status = pa.paComplete
                     if self.stop_func: self.stop_func()
-                else:                    
+                else:
                     output = self.signal[self.pos:self.pos + count, :]
                     status = pa.paContinue
                     self.pos += count
                 return (output.flatten().astype(np.float32).tostring(), status)
-                
-    class RecordStream():
+
+    class RecordStream(object):
         def __init__(self, signal, max_seconds, num_channels, sr, stop_func):
             self.signal = signal
             self.max_seconds = max_seconds
@@ -38,7 +38,7 @@ class PyAudioDriver(driver.AudioDriver):
             self.pos = 0
             self.total_frames = max_seconds * sr
             self.stop_func = stop_func
-         
+
         def callback(self, in_data, count, time_info, status):
                 import numpy as np
                 input = np.fromstring(in_data, dtype=np.float32).astype(
@@ -48,30 +48,30 @@ class PyAudioDriver(driver.AudioDriver):
                 np.vstack((self.signal,input))
                 if (self.pos + count) >= self.total_frames:
                     status = pa.paComplete
-                    print "recording done"
+                    print("recording done")
                     if self.stop_func: self.stop_func()
-                else:                    
+                else:
                     status = pa.paContinue
                     self.pos += count
-                return (None, status) 
-        
+                return (None, status)
+
     def __init__(self):
         self.pyaudio = pa.PyAudio()
         self.streams = {}
         self.recordings = {}
-        self.current_stream_id = -1 
-    
+        self.current_stream_id = -1
+
     def wrap_stop_func(self, stream_id, func):
         def wrapped():
             self.clean(stream_id)
             if func is not None: func()
         return wrapped
-        
-            
+
+
     def play(self, signal, range = (), sr = 44100, stop_func = None):
         self.current_stream_id+=1
         stream = PyAudioDriver.PlaybackStream(
-            signal,range, 
+            signal,range,
             self.wrap_stop_func(self.current_stream_id, stop_func)
         )
 
@@ -81,43 +81,43 @@ class PyAudioDriver(driver.AudioDriver):
             rate=sr,
             output=True,
             stream_callback=stream.callback)
-        
-        self.streams[self.current_stream_id] = pa_stream        
+
+        self.streams[self.current_stream_id] = pa_stream
         return self.current_stream_id
-        
+
     def record(self, max_seconds, num_channels, sr = 44100, stop_func = None):
         self.current_stream_id+=1
         self.recordings[self.current_stream_id] = np.ndarray((0,num_channels))
 
         stream = PyAudioDriver.RecordStream(
-            self.recordings[self.current_stream_id], 
-            max_seconds, num_channels, sr, 
-            self.wrap_stop_func(self.current_stream_id, stop_func) 
-        ) 
-        
+            self.recordings[self.current_stream_id],
+            max_seconds, num_channels, sr,
+            self.wrap_stop_func(self.current_stream_id, stop_func)
+        )
+
         pa_stream = self.pyaudio.open(
             format = pa.paFloat32,
             channels=num_channels,
             rate=sr,
             input=True,
             stream_callback=stream.callback)
-                   
+
         self.streams[self.current_stream_id] = pa_stream
-        return self.current_stream_id            
-    
+        return self.current_stream_id
+
     def clean(self, stream_id):
-        if self.streams.has_key(stream_id):
+        if stream_id in self.streams:
             del self.streams[stream_id]
-        if self.recordings.has_key(stream_id):
+        if stream_id in self.recordings:
             del self.recordings[stream_id]
-            
+
     def stop(self, stream_id):
         ret = None
-        if self.streams.has_key(stream_id) and self.streams[stream_id].is_active():
+        if stream_id in self.streams and self.streams[stream_id].is_active():
                 self.streams[stream_id].stop_stream()
                 self.streams[stream_id].close()
-        if self.recordings.has_key(stream_id):
+        if stream_id in self.recordings:
             recorded = self.recordings[stream_id]
             ret = recorded
-        self.clean(stream_id)  
+        self.clean(stream_id)
         return ret
