@@ -189,9 +189,7 @@ class Wave(Signal):
         stop_func: function
             Function to execute when the sound ends.
         """
-        if self.stream is None:
-            print("hi?")
-            print(audio_driver)
+        if audio_driver is not None and self.stream is None:
             self.stream = audio_driver.play(
                 self, sr = self.sample_rate, stop_func = stop_func
             )
@@ -200,8 +198,9 @@ class Wave(Signal):
         """
         Stop playback if playing.
         """
-        audio_driver.stop(self.stream)
-        self.stream = None
+        if audio_driver is not None:
+            audio_driver.stop(self.stream)
+            self.stream = None
 
     @classmethod
     def record(cls, max_seconds = 10, num_channels = 2, sr = 44100,
