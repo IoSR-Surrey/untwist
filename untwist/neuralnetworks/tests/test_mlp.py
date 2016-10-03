@@ -6,10 +6,10 @@ from numpy.random import multivariate_normal as normal
 
 
 def test_mlp():
+    np.random.seed(0)
     mean1 = [0, 0]
-    mean2 = [10, 10]
-    cov = [[2, 0], [0, 2]]
-    dist = np.random.multivariate_normal
+    mean2 = [20, 20]
+    cov = [[2, 0], [0, 2]]    
     x1 = normal(mean1, cov, 2000)
     x2 = normal(mean2, cov, 2000)
     y1 = np.ones((1000,1))
