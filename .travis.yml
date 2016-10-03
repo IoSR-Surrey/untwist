@@ -11,6 +11,6 @@ addons:
     - liblapack-dev
     - gfortran
 install:
-  - pip install -r requirements.txt
+  - travis_wait pip install -r requirements.txt
   - pip install .
 script: pytest --cov .
