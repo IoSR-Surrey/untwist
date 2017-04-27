@@ -1,17 +1,23 @@
-from distutils.core import setup
+from Cython.Build import cythonize
+from setuptools import setup, Extension
+import numpy as np
 
 
 setup(name='untwist',
       version='0.1.dev0',
-      author = 'Gerard Roma',
+      author='Gerard Roma',
       author_email='g.roma@surrey.ac.uk',
       packages=[
-        'untwist', 
+        'untwist',
         'untwist.base',
         'untwist.data',
+        'untwist.utilities',
         'untwist.soundcard',
-        'untwist.transforms', 
-        'untwist.factorizations', 
+        'untwist.transforms',
+        'untwist.factorizations',
         'untwist.neuralnetworks'
         ],
+      ext_modules=cythonize(
+          Extension('*', ['./untwist/transforms/meddis.pyx'])),
+      include_dirs=[np.get_include()]
       )

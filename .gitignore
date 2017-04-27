@@ -2,4 +2,12 @@
 __pycache__/
 .coverage
 .cache
-
+.ropeproject
+build/
+dist/
+untwist.egg-info/
+untwist/temp/
+*.swp
+*.so
+*.c
+*.log

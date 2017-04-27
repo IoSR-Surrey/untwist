@@ -1,20 +1,8 @@
-from .audio import Signal
-from .audio import Wave
-from .audio import Spectrum
-from .audio import Spectrogram
-from .audio import BinaryMask
-from .audio import RatioMask
+from .audio import (Wave,
+                    Spectrogram,
+                    BinaryMask,
+                    RatioMask,
+                    ComplexRatioMask)
 
-from .dataset import Dataset
-from .dataset import MMDataset
-
-__all__ = [
-            'Signal',
-            'Wave',
-            'Spectrum',
-            'Spectrogram',
-            'BinaryMask',
-            'RatioMask',
-            'Dataset',
-            'MMDataset'
-            ]
+from .dataset import (Dataset,
+                      HDF5Dataset)

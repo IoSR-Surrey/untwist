@@ -12,4 +12,4 @@ addons:
 install:
   - travis_wait pip install -r requirements.txt
   - pip install .
-script: pytest --cov .
+script: pytest --cov=untwist --pep8 untwist

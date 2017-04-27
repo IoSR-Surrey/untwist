@@ -4,3 +4,6 @@ matplotlib>=1.5.3
 Theano>=0.8.2
 pytest>=3.0.2
 pytest-cov>=2.3.1
+h5py>=2.7.0
+Cython>=0.25.2
+pytest-pep8>=1.0.6

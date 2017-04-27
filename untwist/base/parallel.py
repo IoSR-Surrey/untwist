@@ -1,23 +1,20 @@
 """
 Multiprocessing decorator
 """
-import imp, sys
+from __future__ import absolute_import
 import multiprocessing as mp
 import numpy as np
+from types import MethodType
 try:
     import copy_reg
 except:
     import copyreg as copy_reg
 
-# TODO: solve conflict with local "types" module
-f, pathname, desc = imp.find_module("types", sys.path[1:])
-module = imp.load_module("systypes", f, pathname, desc)
-from systypes import MethodType
-
 n_threads = 4
 
 # allow pickling instance methods
 # https://gist.github.com/bnyeggen/1086393
+
 
 def _pickle_method(method):
     func_name = method.im_func.__name__
@@ -27,6 +24,7 @@ def _pickle_method(method):
         cls_name = cls.__name__.lstrip('_')
         func_name = '_' + cls_name + func_name
     return _unpickle_method, (func_name, obj, cls)
+
 
 def _unpickle_method(func_name, obj, cls):
     for cls in cls.__mro__:
@@ -53,20 +51,20 @@ class parallel_process(object):
 
         def wrapper(*args):
             data_obj = args[1]
-            if (len(data_obj.shape) <= self.input_dim
-                or data_obj.shape[-1] == 1):
+            if (len(data_obj.shape) <= self.input_dim or
+                    data_obj.shape[-1] == 1):
                 return process_func(*args)
             else:
-                pool = mp.Pool(mp.cpu_count())# TODO: make configurable
+                pool = mp.Pool(mp.cpu_count())  # TODO: make configurable
                 arglist = [
                     (args[0],) +
-                    (data_obj[...,i],) +
+                    (data_obj[..., i],) +
                     args[2:]
                     for i in range(data_obj.shape[-1])
                 ]
                 result = pool.map(self.worker, arglist)
-                if self.output_dim > self.input_dim: # expanding
+                if self.output_dim > self.input_dim:  # expanding
                     return np.stack(result, -1)
-                else: # contracting
+                else:  # contracting
                     return np.concatenate(result, -1)
         return wrapper

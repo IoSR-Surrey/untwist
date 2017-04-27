@@ -1,9 +1,10 @@
-from .stft import STFT, ISTFT
-from .qerbt import QERBT, QERBFilter
+from .auditory import (Gammatone,
+                       MeddisHairCell,
+                       RatePattern)
 
-__all__ = [
-        'STFT',
-        'ISTFT',
-        'QERBT',
-        'QERBFilter'
-]
+from .stft import (Framer,
+                   STFT,
+                   ISTFT)
+
+from .qerbt import (QERBT,
+                    QERBFilter)
