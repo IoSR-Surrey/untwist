@@ -7,30 +7,36 @@ TODO: Complete tests for first-sample centred window?
 STFT test is probably sufficient.
 '''
 
+
 def test_framer_wave_full():
     '''
-    Mono Wave, full frames only.
+    Stereo Wave, full frames only.
     '''
 
     window_size = 1024
     hop_size = 512
 
-    signal = audio.Wave.tone(freq=440, duration=1)
+    samples = np.random.normal(size=(44100, 2))
+    signal = audio.Wave(samples)
+
     framer = stft.Framer(window_size, hop_size, False, False)
-    frames = framer.process(signal)
 
-    num_frames = (signal.size - window_size) // hop_size + 1
+    num_frames = (signal.num_frames - window_size) // hop_size + 1
 
-    assert(num_frames == frames.shape[0])
+    for channel in signal.T:
 
-    for i, frame in enumerate(frames):
+        frames = framer.process(channel)
 
-        start = i * hop_size
-        end = start + window_size
+        assert(num_frames == frames.shape[0])
 
-        expected = signal[start:end, 0]
+        for i, frame in enumerate(frames):
 
-        assert(np.array_equal(expected, frame))
+            start = i * hop_size
+            end = start + window_size
+
+            expected = channel[start:end]
+
+            assert(np.array_equal(expected, frame))
 
 
 def test_framer_spectrogram_full():
@@ -55,6 +61,5 @@ def test_framer_spectrogram_full():
         end = start + window_size
 
         expected = signal[:, start:end]
-        print(expected.shape, frame.shape)
 
         assert(np.array_equal(expected, frame))
