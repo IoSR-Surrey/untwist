@@ -29,10 +29,15 @@ class Framer(algorithms.Processor):
     (num_frames, num_bands, window_size)
     '''
 
-    def __init__(self, window_size=1024, hop_size=512,
-                 pad_start=True, pad_end=True, return_copy=False):
-        self.window_size = window_size
-        self.hop_size = hop_size
+    def __init__(self,
+                 window_size=1024,
+                 hop_size=512,
+                 pad_start=True,
+                 pad_end=True,
+                 return_copy=False):
+
+        self.window_size = int(window_size)
+        self.hop_size = int(hop_size)
         self.half_window = int(np.floor(window_size / 2.0))
         self.pad_start = pad_start
         self.pad_end = pad_end
@@ -100,13 +105,17 @@ class STFT(algorithms.Processor):
     Input should be a mono Wave, output is a complex spectrogram
     """
 
-    def __init__(self, window='hann', fft_size=1024, hop_size=512):
+    def __init__(self,
+                 window='hann',
+                 fft_size=1024,
+                 hop_size=512):
+
         if isinstance(window, np.ndarray):
             self.window = window
         else:
             self.window = signal.get_window(window, fft_size)
-        self.fft_size = fft_size
-        self.hop_size = hop_size
+        self.fft_size = int(fft_size)
+        self.hop_size = int(hop_size)
         self.window_size = len(self.window)
         self.framer = Framer(self.window_size, self.hop_size, True, True, True)
         self.half_window = int(np.floor(len(self.window) / 2.0))
@@ -138,16 +147,14 @@ class ISTFT(algorithms.Processor):
     def __init__(self,
                  window='hann',
                  fft_size=1024,
-                 hop_size=512,
-                 sample_rate=defaults.sample_rate):
+                 hop_size=512):
 
         if isinstance(window, np.ndarray):
             self.window = window
         else:
             self.window = signal.get_window(window, fft_size)
-        self.fft_size = fft_size
-        self.hop_size = hop_size
-        self.sample_rate = sample_rate
+        self.fft_size = int(fft_size)
+        self.hop_size = int(hop_size)
         self.window_size = len(self.window)
         self.overlap = self.window_size - self.hop_size
 
@@ -167,4 +174,4 @@ class ISTFT(algorithms.Processor):
                                  self.overlap,
                                  self.fft_size)
 
-        return audio.Wave(result * self.scale, self.sample_rate)
+        return audio.Wave(result * self.scale, spectrogram.sample_rate)
