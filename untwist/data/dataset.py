@@ -162,7 +162,6 @@ class HDF5Dataset(DatasetBase):
         self.idx = np.arange(x_shape[0])
         self.input_key = input_key
         self.output_key = output_key
-        self.normaliser = None
         self.running_stats = None
 
         if overwrite:
@@ -217,9 +216,17 @@ class HDF5Dataset(DatasetBase):
 
         group.attrs['n'] = self.running_stats.n
 
-    def get_data(self, name='X'):
+    def get_batch(self, index, size):
         with h5py.File(self.path, "r") as f:
-            return f[name][:]
+            indices = self.idx[index * size:(index + 1) * size]
+            x = f[self.input_key][indices]
+            y = f[self.output_key][indices]
+            x = self.normaliser(x)
+        return (x, y)
+
+    def get_data(self, start=0, end=None, key='X'):
+        with h5py.File(self.path, "r") as f:
+            return f[key][start:end]
 
     def create_data(self, name, shape, dtype=np.float):
         with h5py.File(self.path, "a") as f:
@@ -238,9 +245,12 @@ class HDF5Dataset(DatasetBase):
 
             if not isinstance(names, list):
                 names = self.output_keys
-            r = f.attrs['row']
+
             indices = f['write_indices'][:]
-            idx = indices[r:r + x.shape[0]]
+            idx = indices[f.attrs['row']:f.attrs['row'] + x.shape[0]]
+            f.attrs['row'] += x.shape[0]
+
+            indices = f['write_indices'][:]
             idx2 = idx.argsort()  # Since h5py only write in ascending order
             idx = idx[idx2]
             xIn = x[idx2, :]
@@ -291,7 +301,8 @@ class HDF5Dataset(DatasetBase):
         If batch_size > number of observations, batch_size is limited and 1
         batch is returned.
         '''
-        if not self.normaliser:
+
+        if self.normaliser is None:
             self.set_normaliser(2)
 
         if batch_size > self.num_observations:

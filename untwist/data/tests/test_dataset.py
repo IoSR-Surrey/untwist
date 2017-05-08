@@ -67,13 +67,14 @@ def test_hdf5dataset():
         x = np.random.normal(size=shape)
         y = np.random.normal(size=shape)
         y2 = np.random.normal(size=shape)
-        y_list = [y, y2]
 
         # need to explictly create a h5df dataset if using more than 2 outputs
         ds.create_data('Y2', shape, np.float)
 
-        # Add the lot
-        ds.add(x, y_list)
+        # Add the lot in two blocks
+        end = n//2
+        ds.add(x[:end], [y[:end], y2[:end]])
+        ds.add(x[end:], [y[end:], y2[end:]])
 
         # Standardise X for test
         x = stats.standardise(x)
@@ -81,7 +82,7 @@ def test_hdf5dataset():
         batch_size = ds.num_observations // 4
 
         # Run batcher on each input/output
-        for output_key, y_temp in zip(ds.output_keys, y_list):
+        for output_key, y_temp in zip(ds.output_keys, [y, y2]):
             ds.output_key = output_key
 
             for i, batch in enumerate(
