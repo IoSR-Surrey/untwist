@@ -23,6 +23,10 @@ def nearest_sample(time, sr):
     return int(np.round(time * sr))
 
 
+def nearest_bin(freq, fft_size, sr):
+    return int(np.round(freq * fft_size / sr))
+
+
 def hz_to_cam(hz):
     return 21.366 * np.log10(4368e-6 * hz + 1.0)
 
