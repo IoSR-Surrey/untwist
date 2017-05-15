@@ -192,11 +192,11 @@ class Wave(Signal):
         tmp = self.reshape(self.shape[0], self.num_channels)
         return Wave(np.concatenate((start, tmp, end)), self.sample_rate)
 
-    def make_mono(self):
+    def as_mono(self):
         return Wave(self.mean(1).reshape(-1, 1),
                     self.sample_rate)
 
-    def make_stereo(self):
+    def as_stereo(self):
         if self.num_channels == 1:
             return Wave(np.tile(self, 2), self.sample_rate)
         else:
