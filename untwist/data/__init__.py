@@ -1,4 +1,5 @@
 from .audio import (Wave,
+                    Spectrum,
                     Spectrogram,
                     BinaryMask,
                     RatioMask,

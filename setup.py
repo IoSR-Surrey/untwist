@@ -14,6 +14,7 @@ setup(name='untwist',
         'untwist.utilities',
         'untwist.soundcard',
         'untwist.transforms',
+        'untwist.filters',
         'untwist.factorizations',
         'untwist.neuralnetworks'
         ],

@@ -57,11 +57,55 @@ def hz_to_scale(hz, scale):
 
 def cam_scale_centre_freqs(lo_freq, hi_freq, num_filters_per_erb=1):
     '''
-    Returns frequencies on the Cam scale and hertz frequency scale
+    Returns frequencies of linearly spaced components from lo_freq to hi_freq
+    on the Cam scale.
     '''
+
     cam_lo = hz_to_cam(lo_freq)
     cam_hi = hz_to_cam(hi_freq)
     dif = np.round(cam_hi - cam_lo)
     num_channels = int(dif * num_filters_per_erb)
     cams = cam_lo + np.arange(num_channels) / num_filters_per_erb
-    return cams, cam_to_hz(cams)
+    return cam_to_hz(cams)
+
+
+def biquad_coefficients(ff_old, fb_old, fs_old, fs_new):
+
+        if fs_new != fs_old:
+
+            fc = ((fs_old/np.pi) *
+                  np.arctan(np.sqrt((1 + fb_old[1] + fb_old[2]) /
+                                    (1 - fb_old[1] + fb_old[2]))))
+
+            q = (np.sqrt((fb_old[2] + 1) ** 2 - fb_old[1] ** 2) /
+                 (2 * np.abs(1 - fb_old[2])))
+
+            vl = ((ff_old[0] + ff_old[1] + ff_old[2]) /
+                  (1 + fb_old[1] + fb_old[2]))
+
+            vb = (ff_old[0] - ff_old[2]) / (1 - fb_old[2])
+
+            vh = ((ff_old[0] - ff_old[1] + ff_old[2]) /
+                  (1 - fb_old[1] + fb_old[2]))
+
+            omega = np.tan(np.pi * fc / fs_new)
+
+            omega_sqrd = omega * omega
+
+            denom = omega_sqrd + omega / q + 1
+
+            ff_new, fb_new = np.zeros((2, 3))
+
+            ff_new[0] = (vl * omega_sqrd + vb * (omega / q) + vh) / denom
+            ff_new[1] = 2 * (vl * omega_sqrd - vh) / denom
+            ff_new[2] = (vl * omega_sqrd - (vb * omega / q) + vh) / denom
+
+            fb_new[0] = 1.0
+            fb_new[1] = 2 * (omega_sqrd - 1) / denom
+            fb_new[2] = (omega_sqrd - (omega / q) + 1) / denom
+
+            return ff_new, fb_new
+
+        else:
+
+            return ff_old, fb_old

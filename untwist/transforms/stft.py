@@ -4,7 +4,7 @@ Forward and inverse Short-Time Fourier Transform
 from __future__ import division, print_function
 import numpy as np
 from ..base import algorithms
-from ..base import parallel, defaults
+from ..base import parallel
 from ..data import audio
 from scipy import signal
 
@@ -134,8 +134,7 @@ class STFT(algorithms.Processor):
         return audio.Spectrogram(transform.T,
                                  wave.sample_rate,
                                  self.hop_size,
-                                 self.freqs,
-                                 'hz')
+                                 self.freqs)
 
 
 class ISTFT(algorithms.Processor):

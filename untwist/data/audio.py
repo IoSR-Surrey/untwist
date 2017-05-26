@@ -246,23 +246,20 @@ class Wave(Signal):
 
 class Spectrum(Signal):
     """
-    Audio spectrum complex signal.
+    Audio spectrum
     """
+
+    def __new__(cls, samples, sample_rate, freqs=None):
+
+        instance = Signal.__new__(cls, samples, sample_rate)
+        instance.freqs = freqs
+
+        return instance
 
     def __array_finalize__(self, obj):
         if obj is None:
             return
-        self.sample_rate = getattr(obj, 'sample_rate', defaults.sample_rate)
-        self.hop_size = getattr(obj, 'hop_size', None)
-
-    def __reduce__(self):  # pickle additional attributes
-        pickled_state = super(Spectrum, self).__reduce__()
-        new_state = pickled_state[2] + (self.hop_size,)
-        return (pickled_state[0], pickled_state[1], new_state)
-
-    def __setstate__(self, state):
-        self.hop_size = state[-1]
-        super(Spectrum, self).__setstate__(state[0:-2])
+        self.freqs = getattr(obj, 'freqs', None)
 
     def magnitude(self):
         """
@@ -276,14 +273,26 @@ class Spectrum(Signal):
         """
         return np.angle(self)
 
-    def plot(self):
-        """
-        Plot magnitude and phase.
-        """
-        f, axes = plt.subplots(2, sharex=True)
-        axes[0].plot(self.magnitude())
-        axes[0].plot(self.phase())
-        return f
+    def plot_magnitude(self, log_mag=True, log_x=True):
+
+        mag = self.magnitude()
+
+        y_label = 'Magnitude'
+        if log_mag:
+            mag = conversion.amp_to_db(mag)
+            y_label += ', dB'
+
+        axes = plt.gca()
+
+        if log_x:
+            axes.semilogx(self.freqs, mag)
+        else:
+            axes.plot(self.freqs, mag)
+
+        axes.set_xlabel('Frequency, Hz')
+        axes.set_ylabel(y_label)
+
+        return axes
 
 
 class Spectrogram(Signal):
@@ -301,21 +310,17 @@ class Spectrogram(Signal):
         Sample rate in samples / second of the original time domain signal.
     hop_size: int
          Hop size of the time-frequency transform (default is 1).
-    centre_freqs: float
+    freqs: float
         Centre frequencies of the filters used for the time-frequency
         transform. If None, frequencies are assumed to be linearly spaced and
         are determined from the shape of the input array.
-    freq_scale: string
-        frequency scale, e.g. `hz' or 'cam'.
-
     """
 
     def __new__(cls, samples, sample_rate=defaults.sample_rate,
-                hop_size=1, centre_freqs=None, freq_scale='hz'):
+                hop_size=1, freqs=None):
         instance = Signal.__new__(cls, samples, sample_rate)
         instance.hop_size = hop_size
-        instance.centre_freqs = centre_freqs
-        instance.freq_scale = freq_scale
+        instance.freqs = freqs
         return instance
 
     def __array_finalize__(self, obj):
@@ -323,8 +328,7 @@ class Spectrogram(Signal):
             return
         self.sample_rate = getattr(obj, 'sample_rate', defaults.sample_rate)
         self.hop_size = getattr(obj, 'hop_size', None)
-        self.centre_freqs = getattr(obj, 'centre_freqs', None)
-        self.freq_scale = getattr(obj, 'freq_scale', 'hz')
+        self.freqs = getattr(obj, 'freqs', None)
 
     @property
     def num_channels(self):
@@ -372,7 +376,7 @@ class Spectrogram(Signal):
                 np.c_[start, self, end],
                 self.sample_rate,
                 self.hop_size,
-                self.centre_freqs)
+                self.freqs)
 
     def plot(self, **kwargs):
         return self.plot_magnitude(**kwargs)
@@ -416,15 +420,11 @@ class Spectrogram(Signal):
         if axes is None:
             axes = plt.gca()
 
-        freqs_hz = conversion.scale_to_hz(self.centre_freqs, self.freq_scale)
-
         if max_freq is None:
-            max_freq = freqs_hz[-1]
-        max_freq = conversion.hz_to_scale(max_freq, self.freq_scale)
+            max_freq = self.freqs[-1]
 
         if min_freq is None:
-            min_freq = freqs_hz[0]
-        min_freq = conversion.hz_to_scale(min_freq, self.freq_scale)
+            min_freq = self.freqs[0]
 
         img = axes.imshow(
             mag,
@@ -443,11 +443,10 @@ class Spectrogram(Signal):
         if label_y:
             axes.set_ylabel("Frequency (Hz)")
 
-        if log_y and self.freq_scale == 'hz':
+        if log_y:
             axes.set_yscale('symlog')
-        yticks = axes.get_yticks()
-        ytick_labels = conversion.scale_to_hz(yticks, self.freq_scale)
-        ytick_labels = plot.nice_hertz_labels(ytick_labels)
+
+        ytick_labels = plot.nice_hertz_labels(self.freqs)
         axes.set_yticklabels(ytick_labels)
         plt.setp(axes.get_xticklabels(), visible=label_x)
         plt.setp(axes.get_yticklabels(), visible=label_y)

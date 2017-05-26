@@ -32,20 +32,19 @@ class Gammatone(algorithms.Processor):
             if not hi_freq:
                 hi_freq = conversion.cam_to_hz(
                     conversion.hz_to_cam(lo_freq) + 1)
-            self.centre_freqs, hz = conversion.cam_scale_centre_freqs(
+            self.centre_freqs = conversion.cam_scale_centre_freqs(
                 lo_freq, hi_freq, num_filters_per_erb)
         else:
-            self.centre_freqs = conversion.hz_to_cam(centre_freqs)
-            hz = centre_freqs
+            self.centre_freqs = centre_freqs
 
         if erbs is None:
-            erbs = conversion.hz_to_cambridge_erb(hz)
+            erbs = conversion.hz_to_cambridge_erb(self.centre_freqs)
 
         self.num_bands = len(self.centre_freqs)
 
         b_param = 1.019 * 2 * np.pi * erbs
 
-        cf_arg = 2 * hz * np.pi * dt
+        cf_arg = 2 * self.centre_freqs * np.pi * dt
         b_dt = b_param * dt
         e1 = -2 * np.exp(2j * cf_arg) * dt
         e2 = 2 * np.exp(-b_dt + 1j * cf_arg) * dt
@@ -95,8 +94,7 @@ class Gammatone(algorithms.Processor):
         y = audio.Spectrogram(np.tile(wave, self.num_bands).T,
                               self.sample_rate,
                               1,
-                              self.centre_freqs,
-                              'cam')
+                              self.centre_freqs)
         for chn, y_chn in enumerate(y):
             y_chn *= self.inv_gain[chn]
             for i in range(4):
@@ -116,9 +114,8 @@ class Gammatone(algorithms.Processor):
 
             y.shape = (1, -1)
             y = y.view(audio.Spectrogram)
-            y.centre_freqs = self.centre_freqs[chn]
+            y.freqs = self.centre_freqs[chn]
             y.sample_rate = wave.sample_rate
-            y.freq_scale = 'cam'
             yield y
 
 
@@ -154,8 +151,7 @@ class MeddisHairCell(algorithms.Processor):
         out = out.view(audio.Spectrogram)
 
         out.sample_rate = self.sample_rate
-        out.centre_freqs = specgram.centre_freqs
-        out.freq_scale = specgram.freq_scale
+        out.freqs = specgram.freqs
 
         return out
 
