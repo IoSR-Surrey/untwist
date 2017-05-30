@@ -38,7 +38,7 @@ class Framer(algorithms.Processor):
 
         self.window_size = int(window_size)
         self.hop_size = int(hop_size)
-        self.half_window = int(np.floor(window_size / 2.0))
+        self.half_window = int(window_size // 2)
         self.pad_start = pad_start
         self.pad_end = pad_end
         self.return_copy = return_copy
@@ -75,10 +75,12 @@ class Framer(algorithms.Processor):
 
         # Now padding
         pad_start = pad_end = 0
+
+        if self.pad_start:
+            pad_start = self.half_window
+
+        # Add more on right to ensure no unexpected values when striding
         if self.pad_end:
-            if self.pad_start:
-                pad_start = self.half_window
-            # Add more on right to ensure no unexpected values when striding
             pad_end = self.window_size
         x = x.zero_pad(pad_start, pad_end)
 
