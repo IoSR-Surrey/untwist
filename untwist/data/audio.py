@@ -5,7 +5,6 @@ playing or plotting
 
 TODO:
     - Signal.__reduce__, new_state undefined ?
-    - Keep or remove Spectrum?
 """
 from __future__ import division, print_function
 import numpy as np
@@ -95,6 +94,20 @@ class Signal(np.ndarray):
         """
         return np.array(self)
 
+    def plot(self):
+        """
+        Plot the signal using matplotlib.
+        """
+
+        if self.num_channels == 1:
+            f = plt.plot(self.time, self)
+        else:
+            f, axes = plt.subplots(self.num_channels, sharex=True)
+            for ch in range(self.num_channels):
+                axes[ch].plot(self.time, self[:, ch])
+        plt.xlabel('Time (s)')
+        return f
+
 
 class Wave(Signal):
     """
@@ -167,6 +180,65 @@ class Wave(Signal):
         else:
             raise AttributeError('Wave only has left channel')
 
+    def with_duration(self, duration):
+
+        frames = conversion.nearest_sample(duration,
+                                           self.sample_rate)
+
+        if self.num_frames < frames:
+            return Wave(self.zero_pad(0, frames - self.num_frames),
+                        self.sample_rate)
+
+        elif self.num_frames > frames:
+            return Wave(self[:frames], self.sample_rate)
+
+        else:
+            return Wave(self, self.sample_rate)
+
+    def append(self, other):
+
+        return Wave(np.r_[self, other], self.sample_rate)
+
+    def __add__(self, other):
+
+        if isinstance(other, self.__class__):
+
+            max_frames = np.maximum(self.num_frames, other.num_frames)
+            max_channels = np.maximum(self.num_channels, other.num_channels)
+
+            result = Wave(np.zeros((max_frames, max_channels)),
+                          self.sample_rate)
+
+            result[:self.num_frames, :self.num_channels] = self
+            result[:other.num_frames, :other.num_channels] = other
+
+        else:
+            result = Wave(np.add(self, other), self.sample_rate)
+
+        return result
+
+    @property
+    def level(self):
+        return conversion.power_to_db(
+            np.mean(self.flatten() ** 2)
+        )
+
+    @level.setter
+    def level(self, target_level):
+        gain = conversion.db_to_amp(target_level - self.level)
+        self *= gain
+
+    @property
+    def peak_level(self):
+        return conversion.amp_to_db(
+            np.max(np.abs(self))
+        )
+
+    @peak_level.setter
+    def peak_level(self, target_level):
+        gain = conversion.db_to_amp(target_level - self.peak_level)
+        self *= gain
+
     def normalize(self):
         """
         Normalize by maximum amplitude.
@@ -201,20 +273,6 @@ class Wave(Signal):
             return Wave(np.tile(self, 2), self.sample_rate)
         else:
             return Wave(self[:, :2], self.sample_rate)
-
-    def plot(self):
-        """
-        Plot the waveform using matplotlib.
-        """
-        time_values = np.arange(self.num_frames)/float(self.sample_rate)
-        if self.num_channels == 1:
-            f = plt.plot(time_values, self)
-        else:
-            f, axes = plt.subplots(self.num_channels, sharex=True)
-            for ch in range(self.num_channels):
-                axes[ch].plot(time_values, self[:, ch])
-        plt.xlabel('time (s)')
-        return f
 
     def play(self, stop_func=None):
         """

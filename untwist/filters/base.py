@@ -22,7 +22,13 @@ class Filter(algorithms.Processor):
         else:
             axis = 0
 
-        return signal.lfilter(self.ff_coefs, self.fb_coefs, x, axis=axis)
+        out = signal.lfilter(self.ff_coefs,
+                             self.fb_coefs,
+                             x,
+                             axis=axis).view(type(x))
+
+        out.sample_rate = self.sample_rate
+        return out
 
     def response(self, freqs=None, num_points=1024):
 
@@ -69,7 +75,10 @@ class SOS(Filter):
         else:
             axis = 0
 
-        return signal.sosfilt(self.sos, x, axis=axis)
+        out = signal.sosfilt(self.sos, x, axis=axis).view(type(x))
+        out.sample_rate = self.sample_rate
+
+        return out
 
     def response(self, freqs=None, num_points=1024):
 
