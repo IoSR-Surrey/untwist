@@ -20,6 +20,19 @@ def test_wave_io():
         assert(np.sum(w1 - w2) == 0)
 
 
+def test_wave_add():
+
+    w1 = Wave(np.ones(10))
+    w2 = Wave(np.ones(20) + 1).as_stereo()
+
+    w3 = w1 + w2
+
+    expected = np.ones((20, 2)) + 1
+    expected[:10, 0] += 1
+
+    assert(np.all(w3 == expected))
+
+
 def test_normalize():
     w1 = Wave(np.random.normal(0, 0.5, 44100), 44100)
     w2 = w1.normalize()

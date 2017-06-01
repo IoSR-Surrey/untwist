@@ -210,7 +210,7 @@ class Wave(Signal):
                           self.sample_rate)
 
             result[:self.num_frames, :self.num_channels] = self
-            result[:other.num_frames, :other.num_channels] = other
+            result[:other.num_frames, :other.num_channels] += other
 
         else:
             result = Wave(np.add(self, other), self.sample_rate)
