@@ -8,7 +8,7 @@ from ..utilities import conversion
 import collections
 
 
-class EBUR128Loudness(algorithms.Processor):
+class EBUR128(algorithms.Processor):
     '''
     Calculates the follwing EBU R 128 loudness descriptors from an input Wave:
         - M: Momentary Loudness (time series)
