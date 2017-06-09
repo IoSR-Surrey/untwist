@@ -163,3 +163,96 @@ class EBUR128(algorithms.Processor):
             series.sample_rate = self.rate
 
         return descriptors
+
+
+class LDR(algorithms.Processor):
+
+    LoudnessDescriptors = collections.namedtuple('LoudnessDescriptors',
+                                                 ['Fast',
+                                                  'Slow',
+                                                  'LDR',
+                                                  'ProgrammeLDR'],
+                                                 )
+
+    def __init__(self,
+                 fast_dur=0.05,
+                 slow_dur=3,
+                 analysis_window_dur=3,
+                 hop_size=0.004,
+                 percentile=95,
+                 sample_rate=defaults.sample_rate):
+
+        # Force symmetric windows
+        window_size_fast = conversion.nearest_sample(fast_dur, sample_rate)
+        window_size_fast += (window_size_fast - 1) % 2
+        window_size_slow = conversion.nearest_sample(slow_dur, sample_rate)
+        window_size_slow += (window_size_slow - 1) % 2
+
+        hop_size1 = conversion.nearest_sample(hop_size, sample_rate)
+        self.rate = sample_rate / hop_size1
+
+        # Pad start and end, windows are then centred at time zero
+        self.framer_fast = stft.Framer(window_size_fast, hop_size1, True, True)
+        self.framer_slow = stft.Framer(window_size_slow, hop_size1, True, True)
+
+        # Time-varying LDR
+        window_size_analysis = conversion.nearest_sample(analysis_window_dur,
+                                                         self.rate)
+        window_size_analysis += (window_size_analysis - 1) % 2
+
+        hop_size2 = conversion.nearest_sample(hop_size, self.rate)
+        self.framer_analysis = stft.Framer(window_size_analysis,
+                                           hop_size2,
+                                           True,
+                                           True)
+
+        # Remaining setup
+        self.gains = np.array([1.0, 1.0, 1.0, 1.41, 1.41])
+
+        self.k_filter = filters.loudness.K(sample_rate)
+        self.perc = percentile
+
+    def process(self, wave):
+
+        # Filter signal and then square
+        wave = self.k_filter.process(wave)
+        wave *= wave
+
+        # Fast and Slow calculation
+        num_frames_fast = self.framer_fast.calc_num_frames(wave)
+        energy_fast = np.zeros(num_frames_fast)
+        energy_slow = np.zeros(num_frames_fast)
+
+        for channel, gain in zip(wave.T, self.gains):
+
+            energy_fast += gain * self.framer_fast.process(channel).mean(1)
+
+            energy_slow += (gain *
+                            self.framer_slow.process(
+                                channel).mean(1)[:num_frames_fast]
+                            )
+
+        energy_fast = conversion.power_to_db(energy_fast)
+        energy_slow = conversion.power_to_db(energy_slow)
+
+        # Difference + percentile
+        dif = audio.Signal(np.abs(energy_fast - energy_slow),
+                           sample_rate=self.rate)
+
+        programme_ldr = np.percentile(dif, self.perc, axis=0)
+
+        # Time-varying LDR
+        frames = self.framer_analysis.process(dif)
+        ldr = np.percentile(frames, self.perc, axis=1)
+
+        # Container with time series as Signals
+        descriptors = self.LoudnessDescriptors(energy_fast.view(audio.Signal),
+                                               energy_slow.view(audio.Signal),
+                                               ldr.view(audio.Signal),
+                                               programme_ldr)
+
+        # Fix rate for time series descriptors
+        for series in descriptors[:3]:
+            series.sample_rate = self.rate
+
+        return descriptors

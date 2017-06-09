@@ -82,6 +82,26 @@ class Signal(np.ndarray):
     def time(self):
         return np.arange(self.num_frames) / self.sample_rate
 
+    def zero_pad(self, start_frames, end_frames=0):
+        """
+        Pad with zeros at the start and/or end
+
+        Parameters
+        ----------
+        start_frames: int
+            Number of zeros at the start.
+        end_frames: int
+            Number of zeros at the end.
+
+        """
+
+        start = np.zeros((start_frames, self.num_channels), _types.float_)
+        end = np.zeros((end_frames, self.num_channels), _types.float_)
+        # avoid 1d shape
+        tmp = self.reshape(self.shape[0], self.num_channels)
+        return self.__class__(np.concatenate((start, tmp, end)),
+                              self.sample_rate)
+
     def check_mono(self):
         """
         Utility for ensuring the signal is mono (one channel)
@@ -257,25 +277,6 @@ class Wave(Signal):
         Normalize by maximum amplitude.
         """
         return Wave(np.divide(self, np.max(np.abs(self), 0)), self.sample_rate)
-
-    def zero_pad(self, start_frames, end_frames=0):
-        """
-        Pad with zeros at the start and/or end
-
-        Parameters
-        ----------
-        start_frames: int
-            Number of zeros at the start.
-        end_frames: int
-            Number of zeros at the end.
-
-        """
-
-        start = np.zeros((start_frames, self.num_channels), _types.float_)
-        end = np.zeros((end_frames, self.num_channels), _types.float_)
-        # avoid 1d shape
-        tmp = self.reshape(self.shape[0], self.num_channels)
-        return Wave(np.concatenate((start, tmp, end)), self.sample_rate)
 
     def as_mono(self):
         return Wave(self.mean(1).reshape(-1, 1),

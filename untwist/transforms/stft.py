@@ -70,6 +70,8 @@ class Framer(algorithms.Processor):
 
     def process(self, x):
 
+        x.check_mono()
+
         # Calculate number of frames based on padding requirements
         num_frames = self.calc_num_frames(x)
 
@@ -82,19 +84,21 @@ class Framer(algorithms.Processor):
         # Add more on right to ensure no unexpected values when striding
         if self.pad_end:
             pad_end = self.window_size
+
         x = x.zero_pad(pad_start, pad_end)
 
         size = x.strides[1]  # no problem if Wave is mono (currently expected)
-        if isinstance(x, audio.Wave):
-            x.check_mono()
+        if isinstance(x, (audio.Signal, audio.Wave)):
             shape = (num_frames, self.window_size)
             strides = (size * self.hop_size, size)
         elif isinstance(x, audio.Spectrogram):
             shape = (num_frames, x.num_bands, self.window_size)
             strides = (size * self.hop_size, size * x.num_frames, size)
 
-        frames = np.lib.stride_tricks.as_strided(
-            x, shape=shape, strides=strides)
+        frames = np.lib.stride_tricks.as_strided(x,
+                                                 shape=shape,
+                                                 strides=strides)
+
         if self.return_copy:
             return frames.copy()
         else:
