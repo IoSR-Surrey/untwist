@@ -15,6 +15,7 @@ from scipy.io import wavfile
 from ..base import types as _types
 from ..base import defaults
 from ..soundcard import audio_driver
+from ..analysis import loudness
 
 
 class Signal(np.ndarray):
@@ -167,6 +168,8 @@ class Wave(Signal):
             Path to the wav file.
         """
 
+        if self.peak_level > 0:
+            print('Warning: Peak level exceeds 0 dB FS')
         wavfile.write(filename, self.sample_rate, self)
 
     @property
@@ -237,6 +240,16 @@ class Wave(Signal):
     @peak_level.setter
     def peak_level(self, target_level):
         gain = conversion.db_to_amp(target_level - self.peak_level)
+        self *= gain
+
+    @property
+    def loudness(self):
+        ebur128 = loudness.EBUR128(sample_rate=self.sample_rate)
+        return ebur128.process(self).P
+
+    @loudness.setter
+    def loudness(self, target_loudness):
+        gain = conversion.db_to_amp(target_loudness - self.loudness)
         self *= gain
 
     def normalize(self):

@@ -4,6 +4,7 @@ import os
 import numpy as np
 from ...data.audio import Wave, BinaryMask, RatioMask, ComplexRatioMask
 from ...transforms.stft import STFT
+from ...analysis import loudness
 import tempfile
 
 
@@ -36,8 +37,23 @@ def test_wave_add():
 def test_normalize():
     w1 = Wave(np.random.normal(0, 0.5, 44100), 44100)
     w2 = w1.normalize()
-    print(np.max(np.abs(w2)))
     assert(np.max(np.abs(w2)) > 0.99)
+
+
+def test_loudness():
+
+    ebur128 = loudness.EBUR128(sample_rate=44100)
+
+    w1 = Wave(np.random.normal(0, 0.5, 44100), 44100)
+
+    target = -23.0
+    w1.loudness = target
+
+    measured_loudness = ebur128.process(w1).P
+
+    assert(np.round(measured_loudness, 1) ==
+           np.round(w1.loudness, 1) ==
+           target)
 
 
 def test_masks():

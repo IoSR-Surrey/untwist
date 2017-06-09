@@ -81,7 +81,7 @@ class EBUR128(algorithms.Processor):
     def process(self, wave):
 
         if (wave.num_frames < self.window_size_ML):
-            raise ValueError('wave duration must be > 400 ms')
+            raise ValueError('Wave duration must be > 400 ms')
 
         '''
         Calculate ML and STL
@@ -91,10 +91,10 @@ class EBUR128(algorithms.Processor):
         wave = self.k_filter.process(wave)
         wave *= wave
 
-        num_frames_ML = self.framer_ML.calc_num_frames(wave.left)
+        num_frames_ML = self.framer_ML.calc_num_frames(wave)
         energy_ML = np.zeros(num_frames_ML)
 
-        num_frames_STL = self.framer_STL.calc_num_frames(wave.left)
+        num_frames_STL = self.framer_STL.calc_num_frames(wave)
         energy_STL = np.zeros(num_frames_STL)
 
         for channel, gain in zip(wave.T, self.gains):
