@@ -200,9 +200,8 @@ class LDR(algorithms.Processor):
                                                          self.rate)
         window_size_analysis += (window_size_analysis - 1) % 2
 
-        hop_size2 = conversion.nearest_sample(hop_size, self.rate)
         self.framer_analysis = stft.Framer(window_size_analysis,
-                                           hop_size2,
+                                           1,
                                            True,
                                            True)
 
@@ -236,7 +235,7 @@ class LDR(algorithms.Processor):
         energy_slow = conversion.power_to_db(energy_slow)
 
         # Difference + percentile
-        dif = audio.Signal(np.abs(energy_fast - energy_slow),
+        dif = audio.Signal(energy_fast - energy_slow,
                            sample_rate=self.rate)
 
         programme_ldr = np.percentile(dif, self.perc, axis=0)
