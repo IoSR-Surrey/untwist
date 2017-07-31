@@ -3,6 +3,7 @@ import numpy as np
 from numpy.linalg import svd, norm
 from scipy.sparse.linalg import svds
 from ..base.algorithms import Processor
+from .. import data
 
 class RPCA(Processor):
     """
@@ -19,8 +20,8 @@ class RPCA(Processor):
         elif n <= 400: y = d/n <=0.28
         elif n <= 500: y = d/n <=0.34
         else: y = d/n <=0.38
-        return y 
-    
+        return y
+
 
 
     def __init__(self, iterations = 100, threshold = None, l = 1, mu = 1.25, rho = 1.5):
@@ -55,7 +56,7 @@ class RPCA(Processor):
             E += np.minimum(temp_T + self.l / mu, 0)
             sparse_svd = self.choosvd( n, sv)
             if sparse_svd:
-                U, S, V = svds(X - E + (1 / mu) * Y, sv, which= "LM")                
+                U, S, V = svds(X - E + (1 / mu) * Y, sv, which= "LM")
             else:
                 U, S, V = svd(X - E + (1 / mu) * Y, full_matrices = False)
             svp = len(np.where(S > (1 / mu))[0])
@@ -74,4 +75,6 @@ class RPCA(Processor):
             print(i, err)
             if self.threshold is not None and err < self.threshold:
                 break
-        return A.T, E.T
+        return (data.audio.Spectrogram(A.T, X.sample_rate, X.window_size, X.hop_size),
+                data.audio.Spectrogram(E.T, X.sample_rate, X.window_size, X.hop_size)
+                )
