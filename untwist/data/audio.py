@@ -517,7 +517,7 @@ class Spectrogram(Signal):
         if log_y:
             axes.set_yscale('symlog')
 
-        ytick_labels = plot.nice_hertz_labels(self.freqs)
+        ytick_labels = plot.nice_hertz_labels(axes.get_yticks())
         axes.set_yticklabels(ytick_labels)
         plt.setp(axes.get_xticklabels(), visible=label_x)
         plt.setp(axes.get_yticklabels(), visible=label_y)
