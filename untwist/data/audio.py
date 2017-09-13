@@ -95,19 +95,26 @@ class Signal(np.ndarray):
         """
         return np.array(self)
 
-    def plot(self):
+    def plot(self,
+             axes=None,
+             xlabel='Time (s)',
+             ylabel='Amplitude',
+             color=None):
         """
         Plot the signal using matplotlib.
         """
 
-        if self.num_channels == 1:
-            f = plt.plot(self.time, self)
-        else:
-            f, axes = plt.subplots(self.num_channels, sharex=True)
-            for ch in range(self.num_channels):
-                axes[ch].plot(self.time, self[:, ch])
-        plt.xlabel('Time (s)')
-        return f
+        if axes is None:
+            axes = plt.gca()
+
+        axes.plot(self.time, self, color=color)
+
+        if xlabel:
+            axes.set_xlabel(xlabel)
+        if ylabel:
+            axes.set_ylabel(ylabel)
+
+        return axes
 
 
 class Wave(Signal):
