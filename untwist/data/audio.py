@@ -121,19 +121,26 @@ class Signal(np.ndarray):
         """
         return np.array(self)
 
-    def plot(self):
+    def plot(self,
+             axes=None,
+             xlabel='Time (s)',
+             ylabel='Amplitude',
+             color=None):
         """
         Plot the signal using matplotlib.
         """
 
-        if self.num_channels == 1:
-            f = plt.plot(self.time, self)
-        else:
-            f, axes = plt.subplots(self.num_channels, sharex=True)
-            for ch in range(self.num_channels):
-                axes[ch].plot(self.time, self[:, ch])
-        plt.xlabel('Time (s)')
-        return f
+        if axes is None:
+            axes = plt.gca()
+
+        axes.plot(self.time, self, color=color)
+
+        if xlabel:
+            axes.set_xlabel(xlabel)
+        if ylabel:
+            axes.set_ylabel(ylabel)
+
+        return axes
 
 
 class Wave(Signal):
@@ -459,9 +466,10 @@ class Spectrogram(Signal):
     def plot(self, **kwargs):
         return self.plot_magnitude(**kwargs)
 
-    def plot_magnitude(self, colormap="CMRmap", min_freq=None, max_freq=None,
-                       axes=None, label_x=True, label_y=True, title=None,
-                       colorbar=True, log_mag=True, log_y=False):
+    def plot_magnitude(self, colormap="CMRmap", min_time=None, max_time=None,
+                       min_freq=None, max_freq=None, axes=None,
+                       label_x="Time (s)", label_y="Frequency (Hz)",
+                       title=None, colorbar=True, log_mag=True, log_y=False):
         """
         Plot the magnitude spectrogram
 
@@ -504,6 +512,12 @@ class Spectrogram(Signal):
         if min_freq is None:
             min_freq = self.freqs[0]
 
+        if max_time is None:
+            max_time = self.time[-1]
+
+        if min_time is None:
+            min_time = self.time[0]
+
         img = axes.imshow(
             mag,
             cmap=colormap,
@@ -511,26 +525,26 @@ class Spectrogram(Signal):
             vmin=min_val,
             origin="low",
             interpolation='bilinear',
-            extent=[0, self.time[-1], min_freq, max_freq],
+            extent=[min_time, max_time, min_freq, max_freq],
         )
 
         if colorbar:
             plt.colorbar(img, ax=axes)
         if label_x:
-            axes.set_xlabel("Time (s)")
+            axes.set_xlabel(label_x)
         if label_y:
-            axes.set_ylabel("Frequency (Hz)")
+            axes.set_ylabel(label_y)
 
         if log_y:
             axes.set_yscale('symlog')
 
-        ytick_labels = plot.nice_hertz_labels(self.freqs)
+        ytick_labels = plot.nice_hertz_labels(axes.get_yticks())
         axes.set_yticklabels(ytick_labels)
         plt.setp(axes.get_xticklabels(), visible=label_x)
         plt.setp(axes.get_yticklabels(), visible=label_y)
 
         if title is not None:
-            axes.text(0.9, 0.9, title, horizontalalignment='right',
+            axes.text(0.8, 0.8, title, horizontalalignment='center',
                       bbox={'facecolor': 'white', 'alpha': 0.7, 'pad': 5},
                       transform=axes.transAxes)
         return axes
@@ -542,7 +556,8 @@ class TFMask(Spectrogram):
     """
 
     def plot(self, mask_color=(1, 0, 0, 0.5), min_freq=0, max_freq=None,
-             axes=None, label_x=True, label_y=True, title=None):
+             axes=None, label_x=True, label_y=True, title=None, colorbar=True,
+             log_mag=True, log_y=False):
         """
         Plot the time-frequency mask.
 
@@ -573,7 +588,7 @@ class TFMask(Spectrogram):
                 "map", [alpha_color, mask_color])
         Spectrogram.plot_magnitude(
             self, colormap, min_freq, max_freq, axes, label_x, label_y, title,
-            False, False
+            colorbar, log_mag, log_y
         )
 
 
@@ -591,6 +606,7 @@ class BinaryMask(TFMask):
         instance = TFMask.__new__(cls, mask)
         instance.sample_rate = target.sample_rate
         instance.hop_size = target.hop_size
+        instance.freqs = target.freqs
         return instance
 
 
@@ -607,6 +623,7 @@ class RatioMask(TFMask):
         instance = TFMask.__new__(cls, mask)
         instance.sample_rate = target.sample_rate
         instance.hop_size = target.hop_size
+        instance.freqs = target.freqs
         return instance
 
 
@@ -626,6 +643,7 @@ class ComplexRatioMask(TFMask):
         instance = TFMask.__new__(cls, mask)
         instance.sample_rate = target.sample_rate
         instance.hop_size = target.hop_size
+        instance.freqs = target.freqs
         return instance
 
     def compress(self, k=10, c=0.1):
