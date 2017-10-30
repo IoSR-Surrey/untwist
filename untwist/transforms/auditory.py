@@ -37,10 +37,12 @@ class Gammatone(algorithms.Processor):
         else:
             self.centre_freqs = centre_freqs
 
+
         if erbs is None:
             erbs = conversion.hz_to_cambridge_erb(self.centre_freqs)
+        self.cams = conversion.hz_to_cam(self.centre_freqs)
 
-        self.num_bands = len(self.centre_freqs)
+        self.num_bands = len(self.cams)
 
         b_param = 1.019 * 2 * np.pi * erbs
 
@@ -94,7 +96,8 @@ class Gammatone(algorithms.Processor):
         y = audio.Spectrogram(np.tile(wave, self.num_bands).T,
                               self.sample_rate,
                               1,
-                              self.centre_freqs)
+                              self.cams,
+                              'cam')
         for chn, y_chn in enumerate(y):
             y_chn *= self.inv_gain[chn]
             for i in range(4):
@@ -114,7 +117,8 @@ class Gammatone(algorithms.Processor):
 
             y.shape = (1, -1)
             y = y.view(audio.Spectrogram)
-            y.freqs = self.centre_freqs[chn]
+            y.freqs = self.cams[chn]
+            y.freq_scale = 'cam'
             y.sample_rate = wave.sample_rate
             yield y
 
@@ -174,8 +178,8 @@ class RatePattern(algorithms.Processor):
         self.hop_size = hop_size
 
         self.gammatone = Gammatone(
-            lo_freq, hi_freq, num_filters_per_erb, sample_rate)
-        self.centre_freqs = self.gammatone.centre_freqs
+            lo_freq, hi_freq, num_filters_per_erb, sample_rate=sample_rate)
+        self.cams = self.gammatone.cams
 
         self.ihc = MeddisHairCell(False, sample_rate)
         self.framer = stft.Framer(window_size, hop_size, True, True, False)
@@ -183,12 +187,12 @@ class RatePattern(algorithms.Processor):
     def process(self, wave):
         wave.check_mono()
 
-        shape = (len(self.centre_freqs), self.framer.calc_num_frames(wave))
+        shape = (len(self.cams), self.framer.calc_num_frames(wave))
 
         frames = audio.Spectrogram(np.empty(shape),
                                    self.sample_rate,
                                    self.hop_size,
-                                   self.centre_freqs,
+                                   self.cams,
                                    'cam')
 
         for chn, y_chn in enumerate(self.gammatone.process_generator(wave)):

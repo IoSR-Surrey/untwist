@@ -10,7 +10,7 @@ from __future__ import division, print_function
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
-from ..utilities import plot, conversion
+from ..utilities import conversion
 from scipy.io import wavfile
 from ..base import types as _types
 from ..base import defaults
@@ -402,9 +402,15 @@ class Spectrogram(Signal):
     """
 
     def __new__(cls, samples, sample_rate=defaults.sample_rate,
-                hop_size=1, freqs=None):
+                hop_size=1, freqs=None, freq_scale='hertz'):
         instance = Signal.__new__(cls, samples, sample_rate)
         instance.hop_size = hop_size
+        instance.freq_scale = freq_scale
+
+        if freqs is not None:
+            spacing = sample_rate / 2.0 ** np.ceil(np.log2(samples.shape[0]))
+            instance.freqs = np.arange(samples.shape[0]) * spacing
+
         instance.freqs = freqs
         return instance
 
@@ -414,6 +420,7 @@ class Spectrogram(Signal):
         self.sample_rate = getattr(obj, 'sample_rate', defaults.sample_rate)
         self.hop_size = getattr(obj, 'hop_size', None)
         self.freqs = getattr(obj, 'freqs', None)
+        self.freq_scale = getattr(obj, 'hertz', None)
 
     @property
     def num_channels(self):
@@ -466,10 +473,19 @@ class Spectrogram(Signal):
     def plot(self, **kwargs):
         return self.plot_magnitude(**kwargs)
 
-    def plot_magnitude(self, colormap="CMRmap", min_time=None, max_time=None,
-                       min_freq=None, max_freq=None, axes=None,
-                       label_x="Time (s)", label_y="Frequency (Hz)",
-                       title=None, colorbar=True, log_mag=True, log_y=False):
+    def plot_magnitude(self,
+                       colormap="CMRmap",
+                       min_time=None,
+                       max_time=None,
+                       min_freq=None,
+                       max_freq=None,
+                       axes=None,
+                       xlabel="Time (s)",
+                       ylabel=None,
+                       colorbar=True,
+                       title=None,
+                       log_mag=True,
+                       log_yscale=False):
         """
         Plot the magnitude spectrogram
 
@@ -477,23 +493,27 @@ class Spectrogram(Signal):
         ----------
         colormap: string
             Matplotlib colormap.
-        min_freq: float
-            minimum frequency in Hz (for labelling the axis).
-        max_freq: float
-            maximum frequency in Hz (for labelling the axis).
         axes: matplotlib axes object
             Axes object for plotting on existing figure.
-        label_x: boolean
+        min_time: float
+            minimum time point in seconds
+        max_time: float
+            maximum time point in seconds
+        min_freq: float
+            minimum frequency
+        max_freq: float
+            maximum frequency
+        xlabel: boolean
             Add labels to x axis.
-        label_y: boolean
+        ylabel: boolean
             Add labels to y axis.
-        title: string
-            Plot title (overlaid on image).
         colorbar: boolean
             Add a colorbar.
+        title: string
+            Plot title (overlaid on image).
         log_mag: boolean
             Plot log magnitude.
-        log_y: boolean
+        log_yscale: boolean
             Plot on log-y axis.
         """
         mag = self.magnitude()
@@ -506,18 +526,6 @@ class Spectrogram(Signal):
         if axes is None:
             axes = plt.gca()
 
-        if max_freq is None:
-            max_freq = self.freqs[-1]
-
-        if min_freq is None:
-            min_freq = self.freqs[0]
-
-        if max_time is None:
-            max_time = self.time[-1]
-
-        if min_time is None:
-            min_time = self.time[0]
-
         img = axes.imshow(
             mag,
             cmap=colormap,
@@ -525,28 +533,30 @@ class Spectrogram(Signal):
             vmin=min_val,
             origin="low",
             interpolation='bilinear',
-            extent=[min_time, max_time, min_freq, max_freq],
+            extent=[self.time[0], self.time[-1],
+                    self.freqs[0], self.freqs[-1]],
         )
 
         if colorbar:
             plt.colorbar(img, ax=axes)
-        if label_x:
-            axes.set_xlabel(label_x)
-        if label_y:
-            axes.set_ylabel(label_y)
+        if xlabel:
+            axes.set_xlabel(xlabel)
+        if ylabel:
+            axes.set_ylabel(ylabel)
+        else:
+            axes.set_ylabel(self.freq_scale)
 
-        if log_y:
+        if log_yscale:
             axes.set_yscale('symlog')
 
-        ytick_labels = plot.nice_hertz_labels(axes.get_yticks())
-        axes.set_yticklabels(ytick_labels)
-        plt.setp(axes.get_xticklabels(), visible=label_x)
-        plt.setp(axes.get_yticklabels(), visible=label_y)
+        axes.set_xlim((min_time, max_time))
+        axes.set_ylim((min_freq, max_freq))
 
         if title is not None:
             axes.text(0.8, 0.8, title, horizontalalignment='center',
                       bbox={'facecolor': 'white', 'alpha': 0.7, 'pad': 5},
                       transform=axes.transAxes)
+
         return axes
 
 
@@ -555,9 +565,10 @@ class TFMask(Spectrogram):
     Base time-frequency mask for multiplying with spectrograms.
     """
 
-    def plot(self, mask_color=(1, 0, 0, 0.5), min_freq=0, max_freq=None,
-             axes=None, label_x=True, label_y=True, title=None, colorbar=True,
-             log_mag=True, log_y=False):
+    def plot(self,
+             mask_color=(1, 0, 0, 0.5),
+             axes=None,
+             **kwargs):
         """
         Plot the time-frequency mask.
 
@@ -565,19 +576,10 @@ class TFMask(Spectrogram):
         ----------
         mask_color: tuple
             Color specification (including alpha) for the mask
-        min_freq: float
-            minimum frequency in Hz (for labelling the axis).
-        max_freq: float
-            maximum frequency in Hz (for labelling the axis).
         axes: matplotlib axes object
             Axes object for plotting on existing figure.
-            If provided, the mask is assumed to be overlaif on a spectrogram.
-        label_x: boolean
-            Add labels to x axis.
-        label_y: boolean
-            Add labels to y axis.
-        title: string
-            Plot title (overlaid on image).
+        kwargs: key, value mappings
+            keyword arguments are passed through to Spectrogram.plot_magnitude
         """
         if axes is None:
             colormap = LinearSegmentedColormap.from_list(
@@ -586,10 +588,7 @@ class TFMask(Spectrogram):
             alpha_color = [mask_color[0], mask_color[1], mask_color[2], 0]
             colormap = LinearSegmentedColormap.from_list(
                 "map", [alpha_color, mask_color])
-        Spectrogram.plot_magnitude(
-            self, colormap, min_freq, max_freq, axes, label_x, label_y, title,
-            colorbar, log_mag, log_y
-        )
+        Spectrogram.plot_magnitude(self, colormap=colormap, **kwargs)
 
 
 class BinaryMask(TFMask):
@@ -607,6 +606,7 @@ class BinaryMask(TFMask):
         instance.sample_rate = target.sample_rate
         instance.hop_size = target.hop_size
         instance.freqs = target.freqs
+        instance.scale = target.freq_scale
         return instance
 
 
@@ -624,6 +624,7 @@ class RatioMask(TFMask):
         instance.sample_rate = target.sample_rate
         instance.hop_size = target.hop_size
         instance.freqs = target.freqs
+        instance.scale = target.freq_scale
         return instance
 
 
@@ -644,6 +645,7 @@ class ComplexRatioMask(TFMask):
         instance.sample_rate = target.sample_rate
         instance.hop_size = target.hop_size
         instance.freqs = target.freqs
+        instance.scale = target.freq_scale
         return instance
 
     def compress(self, k=10, c=0.1):

@@ -140,7 +140,8 @@ class STFT(algorithms.Processor):
         return audio.Spectrogram(transform.T,
                                  wave.sample_rate,
                                  self.hop_size,
-                                 self.freqs)
+                                 self.freqs,
+                                 'hertz')
 
 
 class ISTFT(algorithms.Processor):

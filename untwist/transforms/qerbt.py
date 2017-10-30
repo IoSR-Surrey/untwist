@@ -119,7 +119,8 @@ class QERBT(algorithms.Processor):
         return audio.Spectrogram(result,
                                  self.sr,
                                  self.w_len / 2,
-                                 self.hz_freqs)
+                                 self.erb_freqs,
+                                 'cam')
 
 
 class QERBFilter(QERBT):
