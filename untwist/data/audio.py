@@ -1,4 +1,5 @@
 """
+
 Audio representations, i.e. Wave, Spectrum, Spectrogram.  Should always inherit
 from ndarray, but utility functions may be added, e.g. loading audio files,
 playing or plotting
@@ -176,6 +177,8 @@ class Wave(Signal):
     def read(cls, filename):
         """
         Read an audio file (only wav is supported).
+        If the datatype is integer, the signal will be in the interval [-1, 1).
+        The data type of the returned Wave will be float64.
 
         Parameters
         ----------
@@ -183,27 +186,54 @@ class Wave(Signal):
             Path to the wav file.
         """
         sample_rate, samples = wavfile.read(filename)
-        if samples.dtype == np.dtype('int16'):
-            samples = (samples.astype(_types.float_) /
-                       np.iinfo(np.dtype('int16')).min)
+
+        if samples.dtype.kind in 'iu':
+
+            info = np.iinfo(samples.dtype)
+            abs_max = 2 ** (info.bits - 1)
+            offset = info.min + abs_max
+            samples = (samples.astype('float64') - offset) / abs_max
+
         if len(samples.shape) == 1:
             samples = samples.reshape((-1, 1))
         instance = cls(samples, sample_rate)
         return instance
 
-    def write(self, filename):
+    def write(self, filename, dtype='float64'):
         """
         Write the data to an audio file (only wav is supported).
+
+        If the desired data type is integer, the audio file is clipped outside
+        the interval [-1, 1).
 
         Parameters
         ----------
         filename: string
             Path to the wav file.
+        dtype: data type
+            Desired data type, e.g. 'int16'
         """
 
-        if self.peak_level > 0:
-            print('Warning: Peak level exceeds 0 dB FS')
-        wavfile.write(filename, self.sample_rate, self)
+        if 'int' in dtype:
+            info = np.iinfo(dtype)
+            abs_max = 2 ** (info.bits - 1)
+            offset = info.min + abs_max
+            scaled = self * abs_max + offset
+
+            if np.max(scaled) > info.max or np.min(scaled) < info.min:
+                print(("Warning: Signal amplitude has been clipped to the "
+                       "interval [-1, 1)")
+                      )
+
+            scaled = scaled.clip(info.min, info.max).astype(dtype)
+            wavfile.write(filename, self.sample_rate, scaled)
+
+        else:
+
+            if np.max(self) >= 1 or np.min(self) < -1:
+                print("Warning: Signal amplitude exceeds the interval [-1, 1)")
+
+            wavfile.write(filename, self.sample_rate, self.astype(dtype))
 
     @property
     def left(self):
