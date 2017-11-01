@@ -74,6 +74,6 @@ class RPCA(algorithms.Processor):
             print(i, err)
             if self.threshold is not None and err < self.threshold:
                 break
-        return (data.audio.Spectrogram(A.T, X.sample_rate, X.hop_size),
-                data.audio.Spectrogram(E.T, X.sample_rate, X.hop_size)
-                )
+        a, e = X.T.copy(), X.T.copy()
+        a[:], e[:] = A.T, E.T
+        return a, e
