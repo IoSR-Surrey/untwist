@@ -402,16 +402,17 @@ class Spectrogram(Signal):
     """
 
     def __new__(cls, samples, sample_rate=defaults.sample_rate,
-                hop_size=1, freqs=None, freq_scale='hertz'):
+                hop_size=1, freqs=None, freq_scale=defaults.freq_scale):
         instance = Signal.__new__(cls, samples, sample_rate)
         instance.hop_size = hop_size
         instance.freq_scale = freq_scale
 
-        if freqs is not None:
+        if freqs is None:
             spacing = sample_rate / 2.0 ** np.ceil(np.log2(samples.shape[0]))
             instance.freqs = np.arange(samples.shape[0]) * spacing
+        else:
+            instance.freqs = freqs
 
-        instance.freqs = freqs
         return instance
 
     def __array_finalize__(self, obj):
@@ -420,7 +421,7 @@ class Spectrogram(Signal):
         self.sample_rate = getattr(obj, 'sample_rate', defaults.sample_rate)
         self.hop_size = getattr(obj, 'hop_size', None)
         self.freqs = getattr(obj, 'freqs', None)
-        self.freq_scale = getattr(obj, 'hertz', None)
+        self.freq_scale = getattr(obj, 'freq_scale', defaults.freq_scale)
 
     @property
     def num_channels(self):
@@ -468,7 +469,8 @@ class Spectrogram(Signal):
                 np.c_[start, self, end],
                 self.sample_rate,
                 self.hop_size,
-                self.freqs)
+                self.freqs,
+                self.freq_scale)
 
     def plot(self, **kwargs):
         return self.plot_magnitude(**kwargs)
@@ -543,7 +545,7 @@ class Spectrogram(Signal):
             axes.set_xlabel(xlabel)
         if ylabel:
             axes.set_ylabel(ylabel)
-        else:
+        elif ylabel is None:
             axes.set_ylabel(self.freq_scale)
 
         if log_yscale:
