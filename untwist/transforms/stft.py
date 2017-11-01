@@ -88,12 +88,16 @@ class Framer(algorithms.Processor):
         x = x.zero_pad(pad_start, pad_end)
 
         size = x.strides[1]  # no problem if Wave is mono (currently expected)
-        if isinstance(x, (audio.Signal, audio.Wave)):
-            shape = (num_frames, self.window_size)
-            strides = (size * self.hop_size, size)
-        elif isinstance(x, audio.Spectrogram):
+
+        if isinstance(x, audio.Spectrogram):
+
             shape = (num_frames, x.num_bands, self.window_size)
             strides = (size * self.hop_size, size * x.num_frames, size)
+
+        elif isinstance(x, (audio.Signal, audio.Wave)):
+
+            shape = (num_frames, self.window_size)
+            strides = (size * self.hop_size, size)
 
         frames = np.lib.stride_tricks.as_strided(x,
                                                  shape=shape,

@@ -6,7 +6,7 @@ from ...data import audio
 
 def test_gammatone():
     # Load data and flip so frequencies are low to high
-    amt = loadmat('./data/test_data/gammatone.mat')
+    amt = loadmat('./data/test_data/mat/gammatone.mat')
     out_amt = amt['outsig'][::-1]
     centre_freqs = amt['cf'].ravel()[::-1]
     erbs = amt['erb'].ravel()[::-1]
@@ -27,7 +27,7 @@ def test_gammatone():
 
 def test_meddishaircell():
 
-    amt = loadmat('./data/test_data/meddishaircell.mat')
+    amt = loadmat('./data/test_data/mat/meddishaircell.mat')
     in_amt = amt['insig']
     out_amt = amt['outsig']
     sample_rate = 44100
