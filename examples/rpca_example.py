@@ -1,30 +1,36 @@
-import numpy as np
 import matplotlib.pyplot as plt
-from untwist.data import Wave, RatioMask
-from untwist.transforms import STFT, ISTFT
-from untwist.factorizations import RPCA
+from untwist import factorizations
+from untwist import data
+from untwist import transforms
+from utils import get_stems
 
-stft = STFT()
-istft = ISTFT()
-rpca = RPCA(iterations=100)
+
+stems = get_stems(song_idx=2,
+                  path_to_dsd100_subset='/scratch/DSD100subset',
+                  mono=True)
+
+stft = transforms.STFT()
+istft = transforms.ISTFT()
+rpca = factorizations.RPCA(iterations=100)
 
 # Try with vocals over repetitive music background
-x = Wave.read("mixture.wav")
-X = stft.process(x[:, 0])
+mixture_spec = stft.process(stems.mixture)
 
 # this will take some time
-(L, S) = rpca.process(X.magnitude())
+low_rank_l, sparse_s = rpca.process(mixture_spec.magnitude())
 
-M = RatioMask(S, L)
-v = istft.process(X * M)
-v.write("vocal_estimate.wav")
+# Calculate binary mask and synthesise vocals and accompaniment
+mask = data.audio.BinaryMask(sparse_s, low_rank_l, 0)
+istft.process(mixture_spec * mask).normalize().write(
+    "vocal_estimate_mask.wav")
+istft.process(mixture_spec * (1 - mask)).normalize().write(
+    "accomp_estimate_mask.wav")
+stems.mixture.write("mixture.wav")
 
-plt.subplot(4, 1, 1)
-X.plot(label_x=False, title="mixture")
-plt.subplot(4, 1, 2)
-L.plot(label_x=False, title="L")
-plt.subplot(4, 1, 3)
-S.plot(label_x=False, title="S")
-plt.subplot(4, 1, 4)
-M.plot(title="estimated mask")
+plt.subplot(3, 1, 1)
+mixture_spec.plot(xlabel=False, title="Mixture")
+plt.subplot(3, 1, 2)
+low_rank_l.plot(xlabel=False, title="Low-rank matrix (accompaniment)")
+plt.subplot(3, 1, 3)
+sparse_s.plot(xlabel=False, title="Sparse matrix (vocals)")
 plt.show()
