@@ -286,7 +286,7 @@ class Wave(Signal):
     @property
     def level(self):
         return conversion.power_to_db(
-            np.mean(self.flatten() ** 2)
+            float(np.mean(self.flatten() ** 2))
         )
 
     @level.setter
@@ -297,7 +297,7 @@ class Wave(Signal):
     @property
     def peak_level(self):
         return conversion.amp_to_db(
-            np.max(np.abs(self))
+            float(np.max(np.abs(self)))
         )
 
     @peak_level.setter
