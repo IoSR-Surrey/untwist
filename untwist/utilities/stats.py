@@ -57,7 +57,7 @@ class RunningStats:
 
 
 def range_normalise(x, min=None, max=None, axis=0):
-    if None in (min, max):
+    if min is None or max is None:
         min, max = np.min(x, axis), np.max(x, axis)
     if min.ndim < x.ndim:
         min = np.expand_dims(min, axis=axis)
@@ -66,7 +66,7 @@ def range_normalise(x, min=None, max=None, axis=0):
 
 
 def standardise(x, mu=None, std=None, ddof=1, axis=0):
-    if None in (mu, std):
+    if mu is None or std is None:
         mu, std = np.mean(x, axis=axis), np.std(x, ddof=ddof, axis=axis)
 
     if mu.ndim < x.ndim:
