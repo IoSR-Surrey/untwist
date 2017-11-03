@@ -12,7 +12,7 @@ class Processor(object):
     implement any algorithm as a processor. The interface is similar to most
     audio signal processing frameworks. The object encapsulates a function that
     processes some information. Hence the only methods are __init__()
-    (for initialization) and _process().
+    (for initialization) and process().
     This base class defines the interface for processors. Parameters and return
     values for the process() method will vary accross algorithms
     """
