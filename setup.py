@@ -4,7 +4,7 @@ import numpy as np
 
 
 setup(name='untwist',
-      version='0.1.dev0',
+      version='0.1.dev1',
       author='Gerard Roma',
       author_email='g.roma@surrey.ac.uk',
       packages=[

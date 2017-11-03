@@ -8,6 +8,7 @@ TODO:
     - Signal.__reduce__, new_state undefined ?
 """
 from __future__ import division, print_function
+import soundfile as sf
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
@@ -169,64 +170,40 @@ class Wave(Signal):
     @classmethod
     def read(cls, filename):
         """
-        Read an audio file (only wav is supported).
-        If the datatype is integer, the signal will be in the interval [-1, 1).
-        The data type of the returned Wave will be float64.
+        Read an audio file using PySoundfile.
 
         Parameters
         ----------
         filename: string
-            Path to the wav file.
+            Path to the audio file.
         """
-        sample_rate, samples = wavfile.read(filename)
-
-        if samples.dtype.kind in 'iu':
-
-            info = np.iinfo(samples.dtype)
-            abs_max = 2 ** (info.bits - 1)
-            offset = info.min + abs_max
-            samples = (samples.astype('float64') - offset) / abs_max
+        samples, sample_rate = sf.read(filename)
 
         if len(samples.shape) == 1:
             samples = samples.reshape((-1, 1))
+
         instance = cls(samples, sample_rate)
+
         return instance
 
-    def write(self, filename, dtype='float64'):
+    def write(self, filename, desired_dtype='DOUBLE'):
         """
-        Write the data to an audio file (only wav is supported).
-
-        If the desired data type is integer, the audio file is clipped outside
-        the interval [-1, 1).
+        Write the data to an audio file using PySoundfile.
 
         Parameters
         ----------
         filename: string
-            Path to the wav file.
-        dtype: data type
-            Desired data type, e.g. 'int16'
+            Path to the audio file.
+        desired_dtype: data type
+            Desired data type, e.g. 'PCM_16'
         """
 
-        if 'int' in dtype:
-            info = np.iinfo(dtype)
-            abs_max = 2 ** (info.bits - 1)
-            offset = info.min + abs_max
-            scaled = self * abs_max + offset
-
-            if np.max(scaled) > info.max or np.min(scaled) < info.min:
-                print(("Warning: Signal amplitude has been clipped to the "
-                       "interval [-1, 1)")
-                      )
-
-            scaled = scaled.clip(info.min, info.max).astype(dtype)
-            wavfile.write(filename, self.sample_rate, scaled)
-
-        else:
+        if np.float == self.dtype:
 
             if np.max(self) >= 1 or np.min(self) < -1:
                 print("Warning: Signal amplitude exceeds the interval [-1, 1)")
 
-            wavfile.write(filename, self.sample_rate, self.astype(dtype))
+        sf.write(filename, self, self.sample_rate, desired_dtype)
 
     @property
     def left(self):
