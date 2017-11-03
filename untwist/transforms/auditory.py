@@ -87,9 +87,9 @@ class Gammatone(algorithms.Processor):
         self.a_coefs[:, 1] = -2 * cos / e_b_dt
         self.a_coefs[:, 2] = np.exp(-2 * b_dt)
 
+    @algorithms.check_mono
     def process(self, wave):
 
-        wave.check_mono()
         if wave.sample_rate != self.sample_rate:
             raise Exception("Wrong sample rate")
 
@@ -105,9 +105,9 @@ class Gammatone(algorithms.Processor):
                     self.b_coefs[chn, i], self.a_coefs[chn], y_chn)
         return y
 
+    @algorithms.check_mono
     def process_generator(self, wave):
 
-        wave.check_mono()
         for chn in range(self.num_bands):
 
             y = wave.ravel() * self.inv_gain[chn]
@@ -184,8 +184,8 @@ class RatePattern(algorithms.Processor):
         self.ihc = MeddisHairCell(False, sample_rate)
         self.framer = stft.Framer(window_size, hop_size, True, True, False)
 
+    @algorithms.check_mono
     def process(self, wave):
-        wave.check_mono()
 
         shape = (len(self.cams), self.framer.calc_num_frames(wave))
 

@@ -12,7 +12,7 @@ class Processor(object):
     implement any algorithm as a processor. The interface is similar to most
     audio signal processing frameworks. The object encapsulates a function that
     processes some information. Hence the only methods are __init__()
-    (for initialization) and process().
+    (for initialization) and _process().
     This base class defines the interface for processors. Parameters and return
     values for the process() method will vary accross algorithms
     """
@@ -23,7 +23,7 @@ class Processor(object):
         pass
 
     @abc.abstractmethod
-    def process(self, data):
+    def process(self):
         pass
 
 
@@ -46,3 +46,36 @@ class Model(object):
     @abc.abstractmethod
     def save(self, fname):
         pass
+
+'''
+Decorators
+'''
+
+
+def is_mono_exception(signal):
+    from ..data import audio
+    if isinstance(signal, audio.Signal):
+        if not signal.is_mono():
+            raise Exception("Unsupported channel layout")
+
+
+def check_mono(func):
+    '''
+    Raises an exception if any Signal objective is mono.
+    Example usage:
+
+        @check_mono
+        def process(self, data):
+
+    '''
+
+    def wrapper(*args, **kwargs):
+
+        [is_mono_exception(_) for _ in args]
+
+        if(kwargs):
+            [is_mono_exception(_) for _ in kwargs.values()]
+
+        return func(*args, **kwargs)
+
+    return wrapper

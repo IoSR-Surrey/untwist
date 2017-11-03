@@ -68,9 +68,8 @@ class Framer(algorithms.Processor):
 
         return int(num_frames)
 
+    @algorithms.check_mono
     def process(self, x):
-
-        x.check_mono()
 
         # Calculate number of frames based on padding requirements
         num_frames = self.calc_num_frames(x)
@@ -132,10 +131,10 @@ class STFT(algorithms.Processor):
         self.overlap = self.window_size - self.hop_size
 
     # This appears to be faster than scipy's STFT
+    @algorithms.check_mono
     @parallel.parallel_process(1, 2)
     def process(self, wave):
 
-        wave.check_mono()
         frames = self.framer.process(wave)
         transform = np.fft.rfft(frames * self.window, self.fft_size)
         self.freqs = (np.arange(self.fft_size//2 + 1) * wave.sample_rate /

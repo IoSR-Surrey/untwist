@@ -109,13 +109,6 @@ class Signal(np.ndarray):
     def is_stereo(self):
         return self.num_channels == 2
 
-    def check_mono(self):
-        """
-        Utility for ensuring the signal is mono (one channel)
-        """
-        if self.is_stereo():
-            raise Exception("Unsupported channel layout")
-
     def as_ndarray(self):
         """
         Return the data as ndarray again

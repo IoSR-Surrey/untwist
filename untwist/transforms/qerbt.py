@@ -86,9 +86,9 @@ class QERBT(algorithms.Processor):
         signal_window = np.sqrt(signal_window)
         return signal_window
 
+    @algorithms.check_mono
     @parallel.parallel_process(1, 2)
     def process(self, wave):
-        wave.check_mono()
         if wave.sample_rate != self.sr:
             raise Exception("Wrong sample rate")
         n = int(np.ceil(2 * wave.num_frames / self.w_len))
@@ -146,8 +146,8 @@ class QERBFilter(QERBT):
                                    np.sinc(r - 1.0))
         self.weights = np.dot(linalg.pinv(resp), np.ones((ngrid, 1)))
 
+    @algorithms.check_mono
     def process(self, wave, W):
-        wave.check_mono()
         if wave.sample_rate != self.sr:
             raise Exception("Wrong sample rate")
         n = int(np.ceil(2 * wave.num_frames / self.w_len))
