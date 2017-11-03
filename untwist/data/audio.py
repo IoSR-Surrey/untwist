@@ -13,7 +13,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from ..utilities import conversion
-from scipy.io import wavfile
 from ..base import types as _types
 from ..base import defaults
 from ..soundcard import audio_driver
@@ -285,9 +284,9 @@ class Wave(Signal):
         gain = conversion.db_to_amp(target_loudness - self.loudness)
         self *= gain
 
-    def normalize(self):
+    def normalise(self):
         """
-        Normalize by maximum amplitude.
+        Normalise by maximum amplitude.
         """
         return Wave(np.divide(self, np.max(np.abs(self), 0)), self.sample_rate)
 

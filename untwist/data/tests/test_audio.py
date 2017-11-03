@@ -34,9 +34,9 @@ def test_wave_add():
     assert(np.all(w3 == expected))
 
 
-def test_normalize():
+def test_normalise():
     w1 = Wave(np.random.normal(0, 0.5, 44100), 44100)
-    w2 = w1.normalize()
+    w2 = w1.normalise()
     assert(np.max(np.abs(w2)) > 0.99)
 
 
