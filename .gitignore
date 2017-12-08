@@ -11,3 +11,4 @@ untwist/temp/
 *.so
 *.c
 *.log
+.eggs

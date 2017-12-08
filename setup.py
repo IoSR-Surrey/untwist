@@ -1,7 +1,16 @@
-from Cython.Build import cythonize
 from setuptools import setup, Extension
-import numpy as np
+from setuptools.command.build_ext import build_ext as _build_ext
 
+
+class build_ext(_build_ext):
+    def finalize_options(self):
+        import numpy
+        from Cython.Build.Dependencies import cythonize
+        _build_ext.finalize_options(self)
+        self.include_dirs.append(numpy.get_include())
+        self.distribution.ext_modules = cythonize(
+            self.distribution.ext_modules,
+        )
 
 setup(name='untwist',
       version='0.1.dev1',
@@ -19,7 +28,19 @@ setup(name='untwist',
         'untwist.factorizations',
         'untwist.neuralnetworks'
         ],
-      ext_modules=cythonize(
-          Extension('*', ['./untwist/transforms/meddis.pyx'])),
-      include_dirs=[np.get_include()]
+      setup_requires=['cython', 'numpy'],
+      install_requires=[
+          'cython',
+          'h5py',
+          'numpy',
+          'soundfile',
+          'scipy',
+          'six',
+          'theano',
+          'matplotlib'
+      ],
+      ext_modules=[
+        Extension(
+            "*", ["./untwist/transforms/meddis.pyx"])],
+      cmdclass={'build_ext': build_ext},
       )
