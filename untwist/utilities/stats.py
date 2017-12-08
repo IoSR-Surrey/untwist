@@ -4,7 +4,7 @@ import numpy as np
 
 class RunningStats:
     '''
-    Based on Welford’s Method for variance,
+    Based on Welford's Method for variance,
     but not mean (due to vectorisation).
     '''
 

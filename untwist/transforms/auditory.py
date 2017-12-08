@@ -14,7 +14,7 @@ class Gammatone(algorithms.Processor):
 
     Slanley, M., 1993. An Efficient Implementation of the Patterson-Holdsworth
     Auditory Filter Bank. Apple Computer Technical Report #35. Perception
-    Group—Advanced Technology Group. Apple Computer, Inc.
+    Group-Advanced Technology Group. Apple Computer, Inc.
     '''
 
     def __init__(self,
