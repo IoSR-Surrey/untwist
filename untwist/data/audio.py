@@ -16,7 +16,6 @@ from ..utilities import conversion
 from ..base import types as _types
 from ..base import defaults
 from ..soundcard import audio_driver
-from ..analysis import loudness
 
 
 class Signal(np.ndarray):
@@ -276,6 +275,7 @@ class Wave(Signal):
 
     @property
     def loudness(self):
+        from ..analysis import loudness
         ebur128 = loudness.EBUR128(sample_rate=self.sample_rate)
         return ebur128.process(self).P
 
