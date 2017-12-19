@@ -10,6 +10,7 @@ addons:
     - liblapack-dev
     - gfortran
 install:
-  - travis_wait pip install -r requirements.txt
+  - travis_wait pip install -r travis-requirements.txt
   - pip install .
-script: pytest --cov=untwist --pep8 untwist
+script:
+  - pytest --cov=untwist --pep8 untwist
