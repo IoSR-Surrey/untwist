@@ -1,5 +1,6 @@
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext as _build_ext
+import setuptools.command.install
 
 
 class build_ext(_build_ext):
@@ -41,6 +42,6 @@ setup(name='untwist',
       ],
       ext_modules=[
         Extension(
-            "*", ["./untwist/transforms/meddis.pyx"])],
+            "untwist.transforms.meddis", ["untwist/transforms/meddis.pyx"])],
       cmdclass={'build_ext': build_ext},
       )
