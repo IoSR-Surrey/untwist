@@ -22,9 +22,9 @@ low_rank_l, sparse_s = rpca.process(mixture_spec.magnitude())
 
 # Calculate binary mask and synthesise vocals and accompaniment
 mask = data.audio.BinaryMask(sparse_s, low_rank_l, 0)
-istft.process(mixture_spec * mask).normalize().write(
+istft.process(mixture_spec * mask).normalise().write(
     "vocal_estimate_mask.wav")
-istft.process(mixture_spec * (1 - mask)).normalize().write(
+istft.process(mixture_spec * (1 - mask)).normalise().write(
     "accomp_estimate_mask.wav")
 stems.mixture.write("mixture.wav")
 
