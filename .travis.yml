@@ -12,5 +12,6 @@ addons:
 install:
   - travis_wait pip install -r travis-requirements.txt
   - pip install .
+  - python setup.py build_ext -i
 script:
   - pytest --cov=untwist --pep8 untwist
