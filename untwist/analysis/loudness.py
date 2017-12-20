@@ -76,7 +76,7 @@ class EBUR128(algorithms.Processor):
         self.offset_db = 0.691
         self.threshold = conversion.db_to_power(-70 + self.offset_db)
 
-        self.k_filter = filters.loudness.K(sample_rate)
+        self.k_filter = filters.loudness.KFilter(sample_rate)
 
     def process(self, wave):
 
@@ -208,7 +208,7 @@ class LDR(algorithms.Processor):
         # Remaining setup
         self.gains = np.array([1.0, 1.0, 1.0, 1.41, 1.41])
 
-        self.k_filter = filters.loudness.K(sample_rate)
+        self.k_filter = filters.loudness.KFilter(sample_rate)
         self.perc = percentile
 
     def process(self, wave):

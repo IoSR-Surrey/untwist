@@ -3,7 +3,7 @@ from ..utilities import conversion
 import numpy as np
 
 
-class RLB(base.SOS):
+class RLBFilter(base.SOS):
 
     def __init__(self, sample_rate):
         super().__init__(None, sample_rate)
@@ -18,7 +18,7 @@ class RLB(base.SOS):
         self.append(np.r_[ff, fb])
 
 
-class Pre(base.SOS):
+class PreFilter(base.SOS):
 
     def __init__(self, sample_rate):
         super().__init__(None, sample_rate)
@@ -34,10 +34,10 @@ class Pre(base.SOS):
         self.append(np.r_[ff, fb])
 
 
-class K(base.SOS):
+class KFilter(base.SOS):
 
     def __init__(self, sample_rate):
         super().__init__(None, sample_rate)
 
-        self.append(Pre(sample_rate).sos)
-        self.append(RLB(sample_rate).sos)
+        self.append(PreFilter(sample_rate).sos)
+        self.append(RLBFilter(sample_rate).sos)

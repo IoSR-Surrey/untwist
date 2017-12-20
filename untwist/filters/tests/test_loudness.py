@@ -13,7 +13,7 @@ def test_pre():
     for fs in [44100, 48000, 96000]:
 
         # pre = biquad.HighShelf(1500, 1, 4, fs)
-        pre = loudness.Pre(fs)
+        pre = loudness.PreFilter(fs)
 
         mag = pre.response(test_freqs).magnitude()
 
@@ -31,7 +31,7 @@ def test_rlb():
     for fs in [44100, 48000, 96000]:
 
         # rlb = biquad.HighPass(38, 0.5, fs)
-        rlb = loudness.RLB(fs)
+        rlb = loudness.RLBFilter(fs)
 
         mag = rlb.response(test_freqs).magnitude()
 
@@ -53,7 +53,7 @@ def test_k():
 
     for fs in [44100, 48000, 96000]:
 
-        k = loudness.K(fs)
+        k = loudness.KFilter(fs)
 
         mag = k.response(test_freqs).magnitude()
 
