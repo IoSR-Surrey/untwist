@@ -284,7 +284,7 @@ class Wave(Signal):
         gain = conversion.db_to_amp(target_loudness - self.loudness)
         self *= gain
 
-    def normalise(self):
+    def normalize(self):
         """
         Normalise by maximum amplitude.
         """

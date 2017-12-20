@@ -56,7 +56,7 @@ class RunningStats:
         self.n += x.shape[0]
 
 
-def range_normalise(x, min=None, max=None, axis=0):
+def range_normalize(x, min=None, max=None, axis=0):
     if min is None or max is None:
         min, max = np.min(x, axis), np.max(x, axis)
     if min.ndim < x.ndim:

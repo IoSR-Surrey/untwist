@@ -11,5 +11,5 @@ from .conversion import (db_to_amp,
                          cam_scale_centre_freqs)
 
 from .stats import (RunningStats,
-                    range_normalise,
+                    range_normalize,
                     standardise)

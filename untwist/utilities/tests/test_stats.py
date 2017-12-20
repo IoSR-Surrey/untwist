@@ -56,7 +56,7 @@ def test_range_normalse():
     x = np.random.normal(size=(10, 10))
 
     for axis in np.arange(x.ndim):
-        y = stats.range_normalise(x, axis=axis)
+        y = stats.range_normalize(x, axis=axis)
         assert(np.all(np.min(y, axis=axis) == 0))
         assert(np.all(np.max(y, axis=axis) == 1))
 
@@ -64,6 +64,6 @@ def test_range_normalse():
     for axis in np.arange(x.ndim):
         min = np.min(x, axis=axis)
         max = np.max(x, axis=axis)
-        y = stats.range_normalise(x, min, max, axis=axis)
+        y = stats.range_normalize(x, min, max, axis=axis)
         assert(np.all(np.min(y, axis=axis) == 0))
         assert(np.all(np.max(y, axis=axis) == 1))

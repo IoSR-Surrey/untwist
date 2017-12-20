@@ -221,7 +221,7 @@ class HDF5Dataset(DatasetBase):
             indices = self.idx[index * size:(index + 1) * size]
             x = f[self.input_key][indices]
             y = f[self.output_key][indices]
-            x = self.normaliser(x)
+            x = self.normalizer(x)
         return (x, y)
 
     def get_data(self, start=0, end=None, key='X'):
@@ -274,23 +274,23 @@ class HDF5Dataset(DatasetBase):
     def stats(self):
         return self.running_stats.stats
 
-    def set_normaliser(self, norm_method=2):
+    def set_normalizer(self, norm_method=2):
         if norm_method == 1:
-            def normaliser(x):
+            def normalizer(x):
                 return stats.rangeNormalise(
                     x,
                     self.stats['min'][:],
                     self.stats['max'][:],
                     axis=0)
         else:
-            def normaliser(x):
+            def normalizer(x):
                 return stats.standardise(
                     x,
                     self.stats['mean'][:],
                     np.sqrt(self.stats['var'][:]),
                     ddof=1,
                     axis=0)
-        self.normaliser = normaliser
+        self.normalizer = normalizer
 
     def batcher(self,
                 start=0,
@@ -302,8 +302,8 @@ class HDF5Dataset(DatasetBase):
         batch is returned.
         '''
 
-        if self.normaliser is None:
-            self.set_normaliser(2)
+        if self.normalizer is None:
+            self.set_normalizer(2)
 
         if batch_size > self.num_observations:
             batch_size = self.num_observations
@@ -315,6 +315,6 @@ class HDF5Dataset(DatasetBase):
             for i in range(start, end):
                 indices = self.idx[i*batch_size: (i+1)*batch_size]
                 x, y = f[self.input_key], f[self.output_key]
-                x_batch = self.normaliser(x[indices, :])
+                x_batch = self.normalizer(x[indices, :])
                 y_batch = y[indices, :]
                 yield (x_batch, y_batch)

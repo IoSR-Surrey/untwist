@@ -61,7 +61,7 @@ def test_hdf5dataset():
                          output_key='y')
 
         # standardise when adding
-        ds.set_normaliser(2)
+        ds.set_normalizer(2)
 
         # input, 2 outputs
         x = np.random.normal(size=shape)
