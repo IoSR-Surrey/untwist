@@ -6,13 +6,13 @@ import numpy as np
 class Biquad(base.SOS):
 
     def __init__(self, sample_rate):
-        super.__init__(np.zeros((1, 3)), self.sample_rate)
+        super(Biquad, self).__init__(np.zeros((1, 3)), self.sample_rate)
 
 
 class HighPass(Biquad):
 
     def __init__(self, f0, q=defaults.q, sample_rate=defaults.sample_rate):
-        super().__init__(sample_rate)
+        super(HighPass, self).__init__(sample_rate)
 
         w0 = 2.0 * np.pi * f0 / sample_rate
         sin_w0 = np.sin(w0)
@@ -31,7 +31,7 @@ class HighPass(Biquad):
 class LowPass(Biquad):
 
     def __init__(self, f0, q=defaults.q, sample_rate=defaults.sample_rate):
-        super().__init__(sample_rate)
+        super(LowPass, self).__init__(sample_rate)
 
         self.sample_rate = sample_rate
         self.sos, self.sos = np.zeros((2, 3))
@@ -57,7 +57,7 @@ class LowShelf(Biquad):
                  slope=1,
                  gain_dB=3,
                  sample_rate=defaults.sample_rate):
-        super().__init__(sample_rate)
+        super(LowShelf, self).__init__(sample_rate)
 
         self.sample_rate = sample_rate
         self.sos, self.sos = np.zeros((2, 3))
@@ -95,7 +95,7 @@ class HighShelf(Biquad):
                  slope=1,
                  gain_dB=3,
                  sample_rate=defaults.sample_rate):
-        super().__init__(sample_rate)
+        super(HighShelf, self).__init__(sample_rate)
 
         a = 10.0 ** (gain_dB / 40.0)
         w0 = 2.0 * np.pi * f0 / sample_rate
@@ -130,7 +130,7 @@ class Peaking(Biquad):
                  q=defaults.q,
                  gain_dB=3,
                  sample_rate=defaults.sample_rate):
-        super().__init__(sample_rate)
+        super(Peaking, self).__init__(sample_rate)
 
         self.sample_rate = sample_rate
         self.sos, self.sos = np.zeros((2, 3))
