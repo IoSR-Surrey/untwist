@@ -5,11 +5,11 @@ import numpy as np
 from ...data.audio import Wave, BinaryMask, RatioMask, ComplexRatioMask
 from ...transforms.stft import STFT
 from ...analysis import loudness
-import tempfile
+from ...utilities import general
 
 
 def test_wave_io():
-    with tempfile.TemporaryDirectory() as tmp_dir:
+    with general.TemporaryDirectory() as tmp_dir:
         print('created temporary directory', tmp_dir)
         fname = os.path.join(tmp_dir, "noise.wav")
         w1 = Wave(np.random.normal(0, 1, 44100), 44100)

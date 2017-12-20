@@ -1,9 +1,9 @@
 from __future__ import print_function
 from .. import Dataset, HDF5Dataset
 import numpy as np
-import tempfile
 import os
 from ...utilities import stats
+from ...utilities import general
 
 '''
 TODO: Check _test_normalize
@@ -32,7 +32,7 @@ def _test_dataset_io():
     ds1 = Dataset(3, "float")
     ds1.add(np.random.random((3, 3)))
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
+    with general.TemporaryDirectory() as tmp_dir:
         ds1.save(tmp_dir)
         ds2 = Dataset(3, "float")
         ds2.load(tmp_dir)
@@ -47,7 +47,7 @@ def test_dataset():
 
 def test_hdf5dataset():
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
+    with general.TemporaryDirectory() as tmp_dir:
         n = np.random.randint(100, 500)
         shape = (n, n//2)
         path = os.path.join(tmp_dir, 'test.hdf5')
