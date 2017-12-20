@@ -35,7 +35,7 @@ def get_stems(song_idx=0,
 
     if mono:
         def _func(x):
-            return x.as_mono()
+            return x.to_mono()
     else:
         def _func(x):
             return x

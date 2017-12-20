@@ -21,10 +21,30 @@ def test_wave_io():
         assert(np.sum(w1 - w2) == 0)
 
 
+def test_wave_mono():
+
+    stereo_values = np.random.uniform(size=(10, 2))
+    expected_mono_values = np.mean(stereo_values, axis=1).reshape(-1, 1)
+
+    w1 = Wave(stereo_values).to_mono()
+
+    assert(np.all(w1 == expected_mono_values))
+
+
+def test_wave_stereo():
+
+    mono_values = np.random.uniform(size=(10, 1))
+    expected_stereo_values = np.tile(mono_values, 2)
+
+    w1 = Wave(mono_values).to_stereo()
+
+    assert(np.all(w1 == expected_stereo_values))
+
+
 def test_wave_add():
 
     w1 = Wave(np.ones(10))
-    w2 = Wave(np.ones(20) + 1).as_stereo()
+    w2 = Wave(np.ones(20) + 1).to_stereo()
 
     w3 = w1 + w2
 

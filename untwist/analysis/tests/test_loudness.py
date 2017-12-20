@@ -154,7 +154,7 @@ Loudness range
 
 def test_ebu128_tech3342_case1():
 
-    wave = audio.Wave.tone(1000, duration=40, sample_rate=48000).as_stereo()
+    wave = audio.Wave.tone(1000, duration=40, sample_rate=48000).to_stereo()
     wave.peak_level = -20
     drop_after_sample = conversion.nearest_sample(20, wave.sample_rate)
     wave[drop_after_sample:] *= conversion.db_to_amp(-10)
@@ -170,7 +170,7 @@ def test_ebu128_tech3342_case1():
 
 def test_ebu128_tech3342_case2():
 
-    wave = audio.Wave.tone(1000, duration=40, sample_rate=48000).as_stereo()
+    wave = audio.Wave.tone(1000, duration=40, sample_rate=48000).to_stereo()
     wave.peak_level = -20
     drop_after_sample = conversion.nearest_sample(20, wave.sample_rate)
     wave[drop_after_sample:] *= conversion.db_to_amp(-5)
@@ -186,7 +186,7 @@ def test_ebu128_tech3342_case2():
 
 def test_ebu128_tech3342_case3():
 
-    wave = audio.Wave.tone(1000, duration=40, sample_rate=48000).as_stereo()
+    wave = audio.Wave.tone(1000, duration=40, sample_rate=48000).to_stereo()
     wave.peak_level = -40
     drop_after_sample = conversion.nearest_sample(20, wave.sample_rate)
     wave[drop_after_sample:] *= conversion.db_to_amp(20)
@@ -202,7 +202,7 @@ def test_ebu128_tech3342_case3():
 
 def test_ebu128_tech3342_case4():
 
-    wave = audio.Wave.tone(1000, duration=100, sample_rate=48000).as_stereo()
+    wave = audio.Wave.tone(1000, duration=100, sample_rate=48000).to_stereo()
     wave.peak_level = -50
 
     for gain, time in zip([15, 15, -15, -15], [20, 40, 60, 80]):

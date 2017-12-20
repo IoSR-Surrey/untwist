@@ -290,11 +290,11 @@ class Wave(Signal):
         """
         return Wave(np.divide(self, np.max(np.abs(self), 0)), self.sample_rate)
 
-    def as_mono(self):
+    def to_mono(self):
         return Wave(self.mean(1).reshape(-1, 1),
                     self.sample_rate)
 
-    def as_stereo(self):
+    def to_stereo(self):
         if self.num_channels == 1:
             return Wave(np.tile(self, 2), self.sample_rate)
         else:
