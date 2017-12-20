@@ -142,5 +142,5 @@ class SGD(object):
         """
         Get mlp prediction from observation.
         """
-        self.xi.set_value(data)
+        self.xi.set_value(data.astype(floatX))
         return self.predict_func()
