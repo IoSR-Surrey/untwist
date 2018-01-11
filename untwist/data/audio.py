@@ -243,10 +243,16 @@ class Wave(Signal):
             result = Wave(np.zeros((max_frames, max_channels)),
                           self.sample_rate)
 
-            result[:self.num_frames, :self.num_channels] = self
-            result[:other.num_frames, :other.num_channels] += other
+            result[:self.num_frames, :self.num_channels] = (
+                self.reshape(self.num_frames, self.num_channels)
+            )
+
+            result[:other.num_frames, :other.num_channels] += (
+                other.reshape(other.num_frames, other.num_channels)
+            )
 
         else:
+
             result = Wave(np.add(self, other), self.sample_rate)
 
         return result
