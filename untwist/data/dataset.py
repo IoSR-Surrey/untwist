@@ -84,8 +84,8 @@ class Dataset(DatasetBase):
         return self.num_observations // size
 
     def add(self, x, y=np.empty((0, 0))):
-        self.X = np.append(self.X, x, 0)
-        self.Y = np.append(self.Y, y, 0)
+        self.X = np.append(self.X, np.squeeze(x), 0)
+        self.Y = np.append(self.Y, np.squeeze(y), 0)
 
     def shuffle(self):
         perm = np.random.permutation(self.X.shape[0])
@@ -131,12 +131,14 @@ class Dataset(DatasetBase):
         self.Y = np.load(path + "/Y.npy")
 
     def normalize_points(self, x):
+        x = np.squeeze(x)
         return np.divide(
             x - np.amin(self.X, 0),
             np.amax(self.X, 0) - np.amin(self.X, 0),
             np.empty_like(x))
 
     def standardize_points(self, x):
+        x = np.squeeze(x)
         return np.divide(x - np.mean(self.X, 0),
                          np.std(self.X, 0),  np.empty_like(x))
 

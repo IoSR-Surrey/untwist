@@ -36,7 +36,7 @@ class Signal(np.ndarray):
 
         if len(samples.shape) == 1:
             samples.shape = (samples.shape[0], 1)
-        instance = np.array(samples).view(cls)  # Copies samples
+        instance = np.asfortranarray(samples).view(cls)  # Copies samples
         instance.sample_rate = sample_rate
         return instance
 
@@ -65,7 +65,7 @@ class Signal(np.ndarray):
         """
         Number of channels
         """
-        return 1 if len(self.shape) == 1 else self.shape[1]
+        return self.shape[1]
 
     @property
     def num_frames(self):
@@ -82,7 +82,33 @@ class Signal(np.ndarray):
     def time(self):
         return np.arange(self.num_frames) / self.sample_rate
 
-    def zero_pad(self, start_frames, end_frames=0):
+    @property
+    def left(self):
+        return self[..., 0][..., np.newaxis].copy('K')
+
+    @property
+    def right(self):
+        if self.num_channels > 1:
+            return self[..., -1][..., np.newaxis].copy('K')
+        else:
+            raise AttributeError('Signal only has one channel')
+
+    def is_mono(self):
+        return self.num_channels == 1
+
+    def is_stereo(self):
+        return self.num_channels == 2
+
+    def to_mono(self):
+        return self.mean(-1)[..., np.newaxis]
+
+    def to_stereo(self):
+        if self.num_channels == 1:
+            return np.tile(self, 2)
+        else:
+            return self[..., :2].copy('F')
+
+    def zero_pad(self, start_frames=0, end_frames=0):
         """
         Pad with zeros at the start and/or end
 
@@ -95,18 +121,13 @@ class Signal(np.ndarray):
 
         """
 
-        start = np.zeros((start_frames, self.num_channels), _types.float_)
-        end = np.zeros((end_frames, self.num_channels), _types.float_)
-        # avoid 1d shape
-        tmp = self.reshape(self.shape[0], self.num_channels)
-        return self.__class__(np.concatenate((start, tmp, end)),
+        shape = list(self.shape)
+        shape[0] += start_frames + end_frames
+        data = np.zeros(shape, order='F', dtype=self.dtype)
+        data[start_frames:start_frames + self.num_frames] = self
+
+        return self.__class__(data,
                               self.sample_rate)
-
-    def is_mono(self):
-        return self.num_channels == 1
-
-    def is_stereo(self):
-        return self.num_channels == 2
 
     def as_ndarray(self):
         """
@@ -203,17 +224,6 @@ class Wave(Signal):
 
         sf.write(filename, self, self.sample_rate, desired_dtype)
 
-    @property
-    def left(self):
-        return Wave(self[:, 0], self.sample_rate)
-
-    @property
-    def right(self):
-        if self.num_channels > 1:
-            return Wave(self[:, 1], self.sample_rate)
-        else:
-            raise AttributeError('Wave only has left channel')
-
     def with_duration(self, duration):
 
         frames = conversion.nearest_sample(duration,
@@ -295,16 +305,6 @@ class Wave(Signal):
         Normalise by maximum amplitude.
         """
         return Wave(np.divide(self, np.max(np.abs(self), 0)), self.sample_rate)
-
-    def to_mono(self):
-        return Wave(self.mean(1).reshape(-1, 1),
-                    self.sample_rate)
-
-    def to_stereo(self):
-        if self.num_channels == 1:
-            return Wave(np.tile(self, 2), self.sample_rate)
-        else:
-            return Wave(self[:, :2], self.sample_rate)
 
     def play(self, stop_func=None):
         """
@@ -408,7 +408,15 @@ class Spectrogram(Signal):
 
     def __new__(cls, samples, sample_rate=defaults.sample_rate,
                 hop_size=1, freqs=None, freq_scale=defaults.freq_scale):
+
+        # Ensure spectrogram is 3D
+        if samples.ndim == 1:
+            samples = samples.reshape(-1, 1)
+        if samples.ndim == 2:
+            samples = np.expand_dims(samples, -1)
+
         instance = Signal.__new__(cls, samples, sample_rate)
+
         instance.hop_size = hop_size
         instance.freq_scale = freq_scale
 
@@ -429,16 +437,16 @@ class Spectrogram(Signal):
         self.freq_scale = getattr(obj, 'freq_scale', defaults.freq_scale)
 
     @property
-    def num_channels(self):
-        return 1
-
-    @property
     def num_bands(self):
         return self.shape[0]
 
     @property
     def num_frames(self):
         return self.shape[1]
+
+    @property
+    def num_channels(self):
+        return self.shape[2]
 
     @property
     def duration(self):
@@ -468,14 +476,16 @@ class Spectrogram(Signal):
 
         """
 
-        start = np.zeros((self.num_bands, start_frames), _types.float_)
-        end = np.zeros((self.num_bands, end_frames), _types.float_)
-        return Spectrogram(
-                np.c_[start, self, end],
-                self.sample_rate,
-                self.hop_size,
-                self.freqs,
-                self.freq_scale)
+        shape = list(self.shape)
+        shape[1] += start_frames + end_frames
+        data = np.zeros(shape, order='F', dtype=self.dtype)
+        data[:, start_frames:start_frames + self.num_frames] = self
+
+        return Spectrogram(data,
+                           self.sample_rate,
+                           self.hop_size,
+                           self.freqs,
+                           self.freq_scale)
 
     def plot(self, **kwargs):
         return self.plot_magnitude(**kwargs)
@@ -523,7 +533,10 @@ class Spectrogram(Signal):
         log_yscale: boolean
             Plot on log-y axis.
         """
-        mag = self.magnitude()
+
+        # Average over channels for now
+        mag = self.magnitude().mean(axis=-1)
+
         if log_mag:
             mag = 20. * np.log10((mag / np.max(mag)) + np.spacing(1))
             min_val = -80

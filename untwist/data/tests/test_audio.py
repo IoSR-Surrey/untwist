@@ -2,7 +2,11 @@
 from __future__ import print_function
 import os
 import numpy as np
-from ...data.audio import Wave, BinaryMask, RatioMask, ComplexRatioMask
+from ...data.audio import (Wave,
+                           BinaryMask,
+                           RatioMask,
+                           ComplexRatioMask,
+                           Spectrogram)
 from ...transforms.stft import STFT
 from ...analysis import loudness
 from ...utilities import general
@@ -76,14 +80,34 @@ def test_loudness():
            target)
 
 
+def test_spectrogram_mono():
+
+    stereo_values = np.random.uniform(size=(10, 10, 2))
+    expected_mono_values = np.mean(stereo_values, axis=2).reshape(10, 10, 1)
+
+    w1 = Spectrogram(stereo_values).to_mono()
+
+    assert(np.all(w1 == expected_mono_values))
+
+
+def test_spectrogram_stereo():
+
+    mono_values = np.random.uniform(size=(10, 10, 1))
+    expected_stereo_values = np.tile(mono_values, 2)
+
+    w1 = Spectrogram(mono_values).to_stereo()
+
+    assert(np.all(w1 == expected_stereo_values))
+
+
 def test_masks():
     sine = Wave.tone(freq=440, duration=1)
     silence = Wave(np.zeros(sine.shape), sine.sample_rate)
     SINE = STFT().process(sine)
     SILENCE = STFT().process(silence)
-    bm = BinaryMask(SINE, SILENCE)[:, :-1]
+    bm = BinaryMask(SINE, SILENCE)[:, :-1, 0]
     assert(np.sum(bm) == bm.shape[0] * bm.shape[1])
-    rm = RatioMask(SINE, SILENCE)[:, :-1]
+    rm = RatioMask(SINE, SILENCE)[:, :-1, 0]
     assert(np.round(np.sum(rm)) == rm.shape[0] * rm.shape[1])
-    crm = ComplexRatioMask(SINE, SILENCE)[:, :-1]
+    crm = ComplexRatioMask(SINE, SILENCE)[:, :-1, 0]
     assert(np.round(np.sum(crm)) == crm.shape[0] * crm.shape[1])

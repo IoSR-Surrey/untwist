@@ -97,11 +97,17 @@ class EBUR128(algorithms.Processor):
         num_frames_STL = self.framer_STL.calc_num_frames(wave)
         energy_STL = np.zeros(num_frames_STL)
 
-        for channel, gain in zip(wave.T, self.gains):
+        channel_gains = self.gains[:wave.num_channels].reshape(1, -1)
 
-            energy_ML += gain * self.framer_ML.process(channel).mean(1)
+        energy_ML = np.sum(
+            channel_gains * self.framer_ML.process(wave).mean(0),
+            axis=-1
+        )
 
-            energy_STL += gain * self.framer_STL.process(channel).mean(1)
+        energy_STL = np.sum(
+            channel_gains * self.framer_STL.process(wave).mean(0),
+            axis=-1
+        )
 
         '''
         Loudness Range (LRA)
@@ -150,17 +156,14 @@ class EBUR128(algorithms.Processor):
             series[:] = conversion.power_to_db(series) - self.offset_db
 
         # Container with time series as Signals
-        descriptors = self.LoudnessDescriptors(energy_ML.view(audio.Signal),
-                                               energy_STL.view(audio.Signal),
-                                               energy_IL.view(audio.Signal),
-                                               np.max(energy_ML),
-                                               np.max(energy_STL),
-                                               energy_IL[-1],
-                                               lra)
-
-        # Fix rate for time series descriptors
-        for series in descriptors[:3]:
-            series.sample_rate = self.rate
+        descriptors = self.LoudnessDescriptors(
+            audio.Signal(energy_ML, self.rate),
+            audio.Signal(energy_STL, self.rate),
+            audio.Signal(energy_IL, self.rate),
+            np.max(energy_ML),
+            np.max(energy_STL),
+            energy_IL[-1],
+            lra)
 
         return descriptors
 
@@ -219,17 +222,18 @@ class LDR(algorithms.Processor):
 
         # Fast and Slow calculation
         num_frames_fast = self.framer_fast.calc_num_frames(wave)
-        energy_fast = np.zeros(num_frames_fast)
-        energy_slow = np.zeros(num_frames_fast)
 
-        for channel, gain in zip(wave.T, self.gains):
+        channel_gains = self.gains[:wave.num_channels].reshape(1, -1)
 
-            energy_fast += gain * self.framer_fast.process(channel).mean(1)
+        energy_fast = np.sum(
+            channel_gains * self.framer_fast.process(wave).mean(0),
+            axis=-1
+        )
 
-            energy_slow += (gain *
-                            self.framer_slow.process(
-                                channel).mean(1)[:num_frames_fast]
-                            )
+        energy_slow = np.sum(
+            channel_gains * self.framer_slow.process(wave).mean(0),
+            axis=-1
+        )[:num_frames_fast]
 
         energy_fast = conversion.power_to_db(energy_fast)
         energy_slow = conversion.power_to_db(energy_slow)
@@ -245,13 +249,10 @@ class LDR(algorithms.Processor):
         ldr = np.percentile(frames, self.perc, axis=1)
 
         # Container with time series as Signals
-        descriptors = self.LoudnessDescriptors(energy_fast.view(audio.Signal),
-                                               energy_slow.view(audio.Signal),
-                                               ldr.view(audio.Signal),
-                                               programme_ldr)
-
-        # Fix rate for time series descriptors
-        for series in descriptors[:3]:
-            series.sample_rate = self.rate
+        descriptors = self.LoudnessDescriptors(
+            audio.Signal(energy_fast, self.rate),
+            audio.Signal(energy_slow, self.rate),
+            audio.Signal(ldr, self.rate),
+            programme_ldr)
 
         return descriptors
