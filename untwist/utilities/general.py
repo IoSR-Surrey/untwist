@@ -2,6 +2,7 @@ from __future__ import division, print_function
 import wave
 import shutil
 import tempfile
+import numpy as np
 
 
 class TemporaryDirectory(object):

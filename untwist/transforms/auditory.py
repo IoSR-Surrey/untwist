@@ -1,3 +1,7 @@
+'''
+TODO:
+    - Complete RatePattern
+'''
 from __future__ import division, print_function
 import numpy as np
 from scipy import signal
@@ -36,7 +40,6 @@ class Gammatone(algorithms.Processor):
                 lo_freq, hi_freq, num_filters_per_erb)
         else:
             self.centre_freqs = centre_freqs
-
 
         if erbs is None:
             erbs = conversion.hz_to_cambridge_erb(self.centre_freqs)
@@ -87,39 +90,47 @@ class Gammatone(algorithms.Processor):
         self.a_coefs[:, 1] = -2 * cos / e_b_dt
         self.a_coefs[:, 2] = np.exp(-2 * b_dt)
 
-    @algorithms.check_mono
     def process(self, wave):
 
         if wave.sample_rate != self.sample_rate:
             raise Exception("Wrong sample rate")
 
-        y = audio.Spectrogram(np.tile(wave, self.num_bands).T,
+        y = audio.Spectrogram(np.zeros((self.num_bands,
+                                        wave.num_frames,
+                                        wave.num_channels)),
                               self.sample_rate,
                               1,
                               self.cams,
                               'cam')
+
+        # Put input signal in each channel
+        y[:] = wave
+
         for chn, y_chn in enumerate(y):
             y_chn *= self.inv_gain[chn]
             for i in range(4):
                 y_chn[:] = signal.lfilter(
-                    self.b_coefs[chn, i], self.a_coefs[chn], y_chn)
+                    self.b_coefs[chn, i], self.a_coefs[chn], y_chn, axis=0)
         return y
 
-    @algorithms.check_mono
     def process_generator(self, wave):
 
         for chn in range(self.num_bands):
 
-            y = wave.ravel() * self.inv_gain[chn]
+            y = wave * self.inv_gain[chn]
 
             for i in range(4):
-                y = signal.lfilter(self.b_coefs[chn, i], self.a_coefs[chn], y)
+                y = signal.lfilter(self.b_coefs[chn, i],
+                                   self.a_coefs[chn],
+                                   y,
+                                   axis=0)
 
-            y.shape = (1, -1)
-            y = y.view(audio.Spectrogram)
+            y = y.T.view(audio.Spectrogram)
+            y = np.swapaxes(y, 0, 2)
             y.freqs = self.cams[chn]
             y.freq_scale = 'cam'
             y.sample_rate = wave.sample_rate
+
             yield y
 
 
@@ -145,25 +156,20 @@ class MeddisHairCell(algorithms.Processor):
         self.sample_rate = sample_rate
 
     def process(self, specgram):
-        if len(specgram.shape) == 1:
-            raise ValueError('Input Spectrogram must be 2D')
 
-        out = meddis.process(specgram,
-                             int(self.sample_rate),
-                             int(self.medium_spont_rate))
+        for chn in range(specgram.num_channels):
+            specgram[:, :, chn] = meddis.process(specgram[:, :, chn],
+                                                 int(self.sample_rate),
+                                                 int(self.medium_spont_rate))
 
-        out = out.view(audio.Spectrogram)
-
-        out.sample_rate = self.sample_rate
-        out.freqs = specgram.freqs
-
-        return out
+        return specgram
 
 
 class RatePattern(algorithms.Processor):
     '''
     Returns a cochleagram (as a Spectrogram instance) in the form of average
     firing rate over time per frequency channel.
+    NOT TESTED!
     '''
 
     def __init__(self,
@@ -184,18 +190,10 @@ class RatePattern(algorithms.Processor):
         self.ihc = MeddisHairCell(False, sample_rate)
         self.framer = stft.Framer(window_size, hop_size, True, True, False)
 
-    @algorithms.check_mono
     def process(self, wave):
 
-        shape = (len(self.cams), self.framer.calc_num_frames(wave))
+        out = self.gammatone.process(wave)
+        out = self.ihc.process(out)
+        out = self.framer.process(out).mean(axis=2).T
 
-        frames = audio.Spectrogram(np.empty(shape),
-                                   self.sample_rate,
-                                   self.hop_size,
-                                   self.cams,
-                                   'cam')
-
-        for chn, y_chn in enumerate(self.gammatone.process_generator(wave)):
-            y_chn[:] = self.ihc.process(y_chn)
-            frames[chn] = self.framer.process(y_chn).mean(axis=-1).T
-        return frames
+        return out

@@ -19,10 +19,12 @@ def test_gammatone():
     impulse = np.zeros(8193)
     impulse[0] = 1
     impulse = audio.Wave(impulse, sample_rate)
+    impulse = impulse.to_stereo()
 
     out_untwist = gt.process(impulse)
 
-    assert(np.allclose(out_untwist, out_amt))
+    assert(np.allclose(out_untwist[:, :, 0], out_amt))
+    assert(np.allclose(out_untwist[:, :, 1], out_amt))
 
 
 def test_meddishaircell():
@@ -33,8 +35,10 @@ def test_meddishaircell():
     sample_rate = 44100
 
     in_untwist = audio.Spectrogram(in_amt, sample_rate=sample_rate)
+    in_untwist = in_untwist.to_stereo()
 
     meddis = auditory.MeddisHairCell(sample_rate=sample_rate)
     out_untwist = meddis.process(in_untwist)
 
-    assert(np.allclose(out_untwist, out_amt))
+    assert(np.allclose(out_untwist[:, :, 0], out_amt))
+    assert(np.allclose(out_untwist[:, :, 1], out_amt))

@@ -49,7 +49,7 @@ ds = data.dataset.Dataset(x_width=n_bins,
 Mixture spectrogram as input, ideal mask for vocal as output
 Need to transpose so each column is a frequency bin
 '''
-Xtrain = mix_spec[:, :train_frames].magnitude().T
+Xtrain = mix_spec.magnitude()[:, :train_frames].T
 Ytrain = ideal_mask[:, :train_frames].T
 
 
@@ -66,9 +66,8 @@ test_data = mix_spec[:, train_frames:].magnitude().T
 test_data = ds.standardize_points(test_data)
 test_prediction = sgd.predict(test_data)
 
-# Predict the mask, threshold to get binary (> 0.5)
-estimated_mask = ideal_mask[:, train_frames:].copy()
-estimated_mask[:] = test_prediction.T > 0.5
+# Tranposing back to time x  freq, then threshold to get binary mask (> 0.5)
+estimated_mask = data.audio.TFMask(test_prediction.T > 0.5)
 
 # Example audio
 ideal_vocal = mix_spec[:, train_frames:] * ideal_mask[:, train_frames:]
@@ -76,9 +75,9 @@ istft.process(ideal_vocal).write('ideal_masked_vocal.wav')
 predicted_vocal = mix_spec[:, train_frames:] * estimated_mask
 istft.process(predicted_vocal).write('predicted_vocal.wav')
 
-# Transpose back to bin x time and plot
+# Plot
 plt.subplot(4, 1, 1)
-test_data.T.plot(title="mixture", xlabel=False)
+mix_spec[:, train_frames:].plot(title="mixture", xlabel=False)
 plt.subplot(4, 1, 2)
 vocals_spec[:, train_frames:].plot(title="target signal", xlabel=False)
 plt.subplot(4, 1, 3)

@@ -31,7 +31,9 @@ class RPCA(algorithms.Processor):
         self.mu = mu
         self.rho = rho
 
+    @algorithms.check_mono
     def process(self, X):
+        X = np.squeeze(X)
         X = X.T
         Y = X.copy()
         (m, n) = Y.shape
@@ -74,6 +76,17 @@ class RPCA(algorithms.Processor):
             print(i, err)
             if self.threshold is not None and err < self.threshold:
                 break
-        a, e = X.T.copy(), X.T.copy()
-        a[:], e[:] = A.T, E.T
+
+        a = data.audio.Spectrogram(A.T,
+                                   X.hop_size,
+                                   X.sample_rate,
+                                   X.freqs,
+                                   X.freq_scale)
+
+        e = data.audio.Spectrogram(E.T,
+                                   X.hop_size,
+                                   X.sample_rate,
+                                   X.freqs,
+                                   X.freq_scale)
+
         return a, e
