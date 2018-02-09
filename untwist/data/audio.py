@@ -11,7 +11,9 @@ from __future__ import division, print_function
 import soundfile as sf
 import numpy as np
 import matplotlib.pyplot as plt
+import fractions
 from matplotlib.colors import LinearSegmentedColormap
+from scipy import signal
 from ..utilities import conversion
 from ..base import types as _types
 from ..base import defaults
@@ -128,6 +130,21 @@ class Signal(np.ndarray):
 
         return self.__class__(data,
                               self.sample_rate)
+
+    def resample(self, sample_rate, window=('kaiser', 11)):
+
+        if sample_rate == self.sample_rate:
+            return self.copy('K')
+        else:
+
+            gcd = fractions.gcd(sample_rate, self.sample_rate)
+            up = int(sample_rate / gcd)
+            down = int(self.sample_rate / gcd)
+
+            return Wave(
+                signal.resample_poly(self, up, down, 0, window),
+                sample_rate
+            )
 
     def as_ndarray(self):
         """
