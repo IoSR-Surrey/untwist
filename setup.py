@@ -1,17 +1,29 @@
 from setuptools import setup, Extension
-from setuptools.command.build_ext import build_ext as _build_ext
-import setuptools.command.install
+
+'''
+Handle Cython build after handling dependencies
+https://stackoverflow.com/questions/11010151/distributing-a-shared-library-and-some-c-code-with-a-cython-extension-module
+'''
+class lazy_cythonize(list):
+    def __init__(self, callback):
+        self._list, self.callback = None, callback
+    def c_list(self):
+        if self._list is None: self._list = self.callback()
+        return self._list
+    def __iter__(self):
+        for e in self.c_list(): yield e
+    def __getitem__(self, ii): return self.c_list()[ii]
+    def __len__(self): return len(self.c_list())
 
 
-class build_ext(_build_ext):
-    def finalize_options(self):
-        import numpy
-        from Cython.Build.Dependencies import cythonize
-        _build_ext.finalize_options(self)
-        self.include_dirs.append(numpy.get_include())
-        self.distribution.ext_modules = cythonize(
-            self.distribution.ext_modules,
-        )
+def extensions():
+    from Cython.Build import cythonize
+    import numpy as np
+    ext = Extension("untwist.transforms.meddis",
+                    ["untwist/transforms/meddis.pyx"],
+                    include_dirs=[np.get_include()])
+    return cythonize([ext])
+
 
 setup(name='untwist',
       version='0.1.dev1',
@@ -40,8 +52,5 @@ setup(name='untwist',
           'theano',
           'matplotlib'
       ],
-      ext_modules=[
-        Extension(
-            "untwist.transforms.meddis", ["untwist/transforms/meddis.pyx"])],
-      cmdclass={'build_ext': build_ext},
-      )
+      ext_modules=lazy_cythonize(extensions),
+)
