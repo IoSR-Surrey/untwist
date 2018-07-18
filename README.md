@@ -10,22 +10,11 @@ time-frequency transforms.
 To install untwist from source, clone the github repository and run 
 
 ```
-python setup.py build
-```
-
-Followed by
-
-```
 pip install .
 ```
 
 These commands will build the required extension modules for improved
 performance and the installation dependencies.
-
-To do pull in the dependencies and build in one go, use development mode:
-```
-pip install -e .
-```
 
 # Usage
 

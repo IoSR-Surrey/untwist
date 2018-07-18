@@ -1,20 +1,30 @@
 from setuptools import setup, Extension
+import subprocess
+import pkg_resources
+import sys
 
-'''
-Handle Cython build after handling dependencies
-https://stackoverflow.com/questions/11010151/distributing-a-shared-library-and-some-c-code-with-a-cython-extension-module
-'''
-class lazy_cythonize(list):
-    def __init__(self, callback):
-        self._list, self.callback = None, callback
-    def c_list(self):
-        if self._list is None: self._list = self.callback()
-        return self._list
-    def __iter__(self):
-        for e in self.c_list(): yield e
-    def __getitem__(self, ii): return self.c_list()[ii]
-    def __len__(self): return len(self.c_list())
+# Let pip handle setup dependencies
+# https://bitbucket.org/dholth/setup-requires
+sys.path[0:0] = ['setup-requires']
+pkg_resources.working_set.add_entry('setup-requires')
 
+def missing_requirements(specifiers):
+    for specifier in specifiers:
+        try:
+            pkg_resources.require(specifier)
+        except pkg_resources.DistributionNotFound:
+            yield specifier
+
+
+def install_requirements(specifiers):
+    to_install = list(specifiers)
+    if to_install:
+        cmd = [sys.executable, "-m", "pip", "install",
+            "-t", "setup-requires"] + to_install
+        subprocess.call(cmd)
+
+requires = ['numpy', 'cython']
+install_requirements(missing_requirements(requires))
 
 def extensions():
     from Cython.Build import cythonize
@@ -23,7 +33,6 @@ def extensions():
                     ["untwist/transforms/meddis.pyx"],
                     include_dirs=[np.get_include()])
     return cythonize([ext])
-
 
 setup(name='untwist',
       version='0.1.dev1',
@@ -41,7 +50,6 @@ setup(name='untwist',
         'untwist.factorizations',
         'untwist.neuralnetworks'
         ],
-      setup_requires=['cython', 'numpy'],
       install_requires=[
           'cython',
           'h5py',
@@ -52,5 +60,6 @@ setup(name='untwist',
           'theano',
           'matplotlib'
       ],
-      ext_modules=lazy_cythonize(extensions),
+      #ext_modules=lazy_cythonize(extensions),
+      ext_modules=extensions(),
 )
