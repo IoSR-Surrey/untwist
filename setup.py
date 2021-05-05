@@ -27,8 +27,8 @@ setup(name='untwist',
         'untwist.transforms',
         'untwist.filters',
         'untwist.factorizations',
-        'untwist.neuralnetworks'
-        'untwist.hpss'
+        'untwist.neuralnetworks',
+        'untwist.hpss',
         ],
       setup_requires=['cython', 'numpy'],
       install_requires=[
